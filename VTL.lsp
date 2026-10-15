@@ -5,12 +5,15 @@
 ; r6 (02/10/2026): mep dich la LINE khong con mat doan cuoi / cham; nhan so co dau
 ;   phay (1,5); 2 mep: kich hut thi hoi lai, khong thoat lenh; so hien gon;
 ;   INSUNITS = 0 thi bao ro don vi nhap khong doi.
-; r7 (15/10/2026): them lenh TNMB - trien khai trac ngang (ADS Civil) thanh mat bang
-;   XYZ: thiet ke hoac khao sat, toi da 50 coc; polyline ngang + noi doc, ghi cao do,
-;   do doc, ky hieu taluy/giat co. Xem phan TNMB o cuoi file.
+; r7 (15/10/2026): them trien khai trac ngang (ADS Civil) thanh mat bang XYZ:
+;   thiet ke hoac khao sat; polyline ngang + noi doc, ghi cao do, do doc,
+;   ky hieu taluy/giat co. Xem phan TNMB o cuoi file.
+; r8 (15/10/2026): gop chung 1 hop thoai lenh VTL (chon chuc nang o dau hop thoai;
+;   TNMB van go duoc); khong gioi han so trac ngang (ghep doi tuong bang quet truc Y);
+;   moi phan ket qua 1 layer rieng, chon mau tung layer.
 
 (vl-load-com)
-(setq *VTL:BUILD* "2026-10-15-r7b")
+(setq *VTL:BUILD* "2026-10-15-r8")
 
 ; Doi cau hinh cu: ty le vach ngan -> chieu dai vach ngan cung don vi nhap.
 (if (not (equal *VTL:CFG-SCHEMA* 2))
@@ -34,38 +37,108 @@
       (foreach row
         (list
           "vtl_dialog : dialog {"
-          " label = \"V\\U+1EBD taluy tr\\U+00EAn b\\U+00ECnh \\U+0111\\U+1ED3 - VTL\";"
+          " label = \"VTL - Taluy b\\U+00ECnh \\U+0111\\U+1ED3 & Tri\\U+1EC3n khai tr\\U+1EAFc ngang th\\U+00E0nh m\\U+1EB7t b\\U+1EB1ng\";"
           " : column {"
-          "  : boxed_row { label = \"Ki\\U+1EC3u taluy v\\U+00E0 c\\U+00E1ch ch\\U+1ECDn m\\U+00E9p\";"
-          "   : radio_column {"
-          "    : radio_button { key = \"dap\"; label = \"Taluy \\U+0111\\U+1EAFp\"; }"
-          "    : radio_button { key = \"dao\"; label = \"Taluy \\U+0111\\U+00E0o\"; }"
+          "  : boxed_radio_row { label = \"Ch\\U+1EE9c n\\U+0103ng\";"
+          "   : radio_button { key = \"f_taluy\"; label = \"V\\U+1EBD k\\U+00FD hi\\U+1EC7u taluy tr\\U+00EAn b\\U+00ECnh \\U+0111\\U+1ED3\"; }"
+          "   : radio_button { key = \"f_tnmb\"; label = \"Tri\\U+1EC3n khai tr\\U+1EAFc ngang th\\U+00E0nh m\\U+1EB7t b\\U+1EB1ng\"; }"
+          "  }"
+          "  : row {"
+          "   : column {"
+          "    : boxed_row { label = \"Ki\\U+1EC3u taluy v\\U+00E0 c\\U+00E1ch ch\\U+1ECDn m\\U+00E9p\";"
+          "     : radio_column {"
+          "      : radio_button { key = \"dap\"; label = \"Taluy \\U+0111\\U+1EAFp\"; }"
+          "      : radio_button { key = \"dao\"; label = \"Taluy \\U+0111\\U+00E0o\"; }"
+          "     }"
+          "     : radio_column {"
+          "      : radio_button { key = \"mot\"; label = \"M\\U+1ED9t m\\U+00E9p: nh\\U+1EADp r\\U+1ED9ng m\\U+00E1i\"; }"
+          "      : radio_button { key = \"hai\"; label = \"Hai m\\U+00E9p: v\\U+1EA1ch d\\U+00E0i ch\\U+1EA1m m\\U+00E9p th\\U+1EE9 hai\"; }"
+          "     }"
+          "    }"
+          "    : boxed_column { label = \"L\\U+1EDBp v\\U+1EBD\";"
+          "     : edit_box { key = \"layer\"; label = \"T\\U+00EAn l\\U+1EDBp g\\U+1ED1c\"; edit_width = 20; }"
+          "     : text { label = \"M\\U+00E0u c\\U+1EE7a t\\U+1EA5t c\\U+1EA3 v\\U+1EA1ch theo l\\U+1EDBp n\\U+00E0y.\"; }"
+          "    }"
+          "    : boxed_column { label = \"K\\U+00EDch th\\U+01B0\\U+1EDBc v\\U+1EA1ch\";"
+          "     : popup_list { key = \"unit\"; label = \"\\U+0110\\U+01A1n v\\U+1ECB s\\U+1ED1 nh\\U+1EADp\"; width = 17; }"
+          "     : edit_box { key = \"buoc\"; label = \"Kho\\U+1EA3ng c\\U+00E1ch gi\\U+1EEFa 2 v\\U+1EA1ch\"; edit_width = 9; }"
+          "     : row {"
+          "      : edit_box { key = \"rong\"; label = \"Chi\\U+1EC1u d\\U+00E0i v\\U+1EA1ch d\\U+00E0i\"; edit_width = 9; }"
+          "      : edit_box { key = \"ngan\"; label = \"Chi\\U+1EC1u d\\U+00E0i v\\U+1EA1ch ng\\U+1EAFn\"; edit_width = 9; }"
+          "     }"
+          "     : text { label = \"Khi ch\\U+1ECDn 2 m\\U+00E9p, v\\U+1EA1ch d\\U+00E0i t\\U+1EDBi m\\U+00E9p th\\U+1EE9 hai.\"; }"
+          "     : text { label = \"V\\U+1EA1ch ng\\U+1EAFn nh\\U+1EADp chi\\U+1EC1u d\\U+00E0i th\\U+1EF1c, kh\\U+00F4ng v\\U+01B0\\U+1EE3t m\\U+00E9p \\U+0111\\U+00EDch.\"; }"
+          "    }"
+          "    : boxed_row { label = \"Chu k\\U+1EF3 v\\U+1EA1ch (l\\U+1EB7p su\\U+1ED1t tuy\\U+1EBFn)\";"
+          "     : edit_box { key = \"sodai\"; label = \"S\\U+1ED1 v\\U+1EA1ch d\\U+00E0i\"; edit_width = 6; }"
+          "     : edit_box { key = \"songan\"; label = \"S\\U+1ED1 v\\U+1EA1ch ng\\U+1EAFn\"; edit_width = 6; }"
+          "    }"
+          "    : text { label = \"V\\U+00ED d\\U+1EE5: 1 d\\U+00E0i + 3 ng\\U+1EAFn; ho\\U+1EB7c 2 d\\U+00E0i + 5 ng\\U+1EAFn.\"; }"
+          "    spacer_1;"
           "   }"
-          "   : radio_column {"
-          "    : radio_button { key = \"mot\"; label = \"M\\U+1ED9t m\\U+00E9p: nh\\U+1EADp r\\U+1ED9ng m\\U+00E1i\"; }"
-          "    : radio_button { key = \"hai\"; label = \"Hai m\\U+00E9p: v\\U+1EA1ch d\\U+00E0i ch\\U+1EA1m m\\U+00E9p th\\U+1EE9 hai\"; }"
+          "   : column {"
+          "    : row {"
+          "     : boxed_radio_column { label = \"Lo\\U+1EA1i tr\\U+1EAFc ngang\";"
+          "      : radio_button { key = \"m_tk\"; label = \"Thi\\U+1EBFt k\\U+1EBF\"; }"
+          "      : radio_button { key = \"m_ks\"; label = \"Kh\\U+1EA3o s\\U+00E1t (t\\U+1EF1 nhi\\U+00EAn)\"; }"
+          "     }"
+          "     : boxed_radio_column { label = \"\\U+0110\\U+1ECBnh v\\U+1ECB m\\U+1EB7t b\\U+1EB1ng\";"
+          "      : radio_button { key = \"m_that\"; label = \"T\\U+1ECDa \\U+0111\\U+1ED9 th\\U+1EADt VN-2000 (ch\\U+1ECDn tim tuy\\U+1EBFn)\"; }"
+          "      : radio_button { key = \"m_thang\"; label = \"Du\\U+1ED7i th\\U+1EB3ng t\\U+1EA1i \\U+0111i\\U+1EC3m pick\"; }"
+          "     }"
+          "    }"
+          "    : boxed_column { label = \"Nh\\U+1EADn d\\U+1EA1ng l\\U+1EDBp tr\\U+1EAFc ngang (wildcard, c\\U+00E1ch nhau d\\U+1EA5u ph\\U+1EA9y)\";"
+          "     : edit_box { key = \"m_lbang\"; label = \"B\\U+1EA3ng tr\\U+1EAFc ngang (\\U+0111\\U+01B0\\U+1EDDng tim)\"; edit_width = 26; }"
+          "     : edit_box { key = \"m_lly\"; label = \"Ch\\U+1EEF l\\U+00FD tr\\U+00ECnh\"; edit_width = 26; }"
+          "     : edit_box { key = \"m_ltk\"; label = \"L\\U+1EDBp thi\\U+1EBFt k\\U+1EBF\"; edit_width = 26; }"
+          "     : edit_box { key = \"m_lks\"; label = \"L\\U+1EDBp kh\\U+1EA3o s\\U+00E1t\"; edit_width = 26; }"
+          "     : edit_box { key = \"m_ltaluy\"; label = \"L\\U+1EDBp taluy (k\\U+00FD hi\\U+1EC7u)\"; edit_width = 26; }"
+          "    }"
+          "    : boxed_column { label = \"K\\U+1EBFt qu\\U+1EA3\";"
+          "     : row {"
+          "      : edit_box { key = \"m_font\"; label = \"Font ch\\U+1EEF\"; edit_width = 12; }"
+          "      : edit_box { key = \"m_hchu\"; label = \"Cao ch\\U+1EEF (mm)\"; edit_width = 6; }"
+          "     }"
+          "     : row {"
+          "      : edit_box { key = \"m_width\"; label = \"Global Width (mm)\"; edit_width = 6; }"
+          "      : edit_box { key = \"m_tyle\"; label = \"T\\U+1EF7 l\\U+1EC7 1/\"; edit_width = 6; }"
+          "     }"
+          "     : radio_row {"
+          "      : radio_button { key = \"m_k3d\"; label = \"Polyline 3D (Z th\\U+1EADt)\"; }"
+          "      : radio_button { key = \"m_klw\"; label = \"LWPolyline c\\U+00F3 Global Width\"; }"
+          "     }"
+          "    }"
+          "    : boxed_column { label = \"Hi\\U+1EC3n th\\U+1ECB (ch\\U+1ECDn nh\\U+1EEFng g\\U+00EC c\\U+1EA7n v\\U+1EBD)\";"
+          "     : row {"
+          "      : toggle { key = \"m_caodo\"; label = \"Cao \\U+0111\\U+1ED9\"; }"
+          "      : toggle { key = \"m_dodoc\"; label = \"\\U+0110\\U+1ED9 d\\U+1ED1c\"; }"
+          "      : toggle { key = \"m_tencoc\"; label = \"T\\U+00EAn c\\U+1ECDc\"; }"
+          "      : toggle { key = \"m_doc\"; label = \"N\\U+1ED1i d\\U+1ECDc\"; }"
+          "     }"
+          "     : row {"
+          "      : toggle { key = \"m_kyhieu\"; label = \"K\\U+00FD hi\\U+1EC7u taluy (thi\\U+1EBFt k\\U+1EBF)\"; }"
+          "      : edit_box { key = \"m_buoc\"; label = \"B\\U+01B0\\U+1EDBc v\\U+1EA1ch (m)\"; edit_width = 6; }"
+          "     }"
+          "    }"
+          "    : boxed_column { label = \"Layer ri\\U+00EAng t\\U+1EEBng ph\\U+1EA7n: ti\\U+1EC1n t\\U+1ED1 + h\\U+1EADu t\\U+1ED1 (b\\U+1EA5m \\U+00F4 m\\U+00E0u \\U+0111\\U+1EC3 \\U+0111\\U+1ED5i m\\U+00E0u layer)\";"
+          "     : edit_box { key = \"m_prefix\"; label = \"Ti\\U+1EC1n t\\U+1ED1 layer\"; edit_width = 26; }"
+          "     : row {"
+          "      : column {"
+          "       : row { : text { label = \"Polyline ngang  -NGANG\"; width = 24; fixed_width = true; } : image_button { key = \"c_ngang\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_ngang\"; width = 5; fixed_width = true; } }"
+          "       : row { : text { label = \"Polyline d\\U+1ECDc  -DOC\"; width = 24; fixed_width = true; } : image_button { key = \"c_doc\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_doc\"; width = 5; fixed_width = true; } }"
+          "       : row { : text { label = \"Ch\\U+1EEF cao \\U+0111\\U+1ED9  -CAODO\"; width = 24; fixed_width = true; } : image_button { key = \"c_caodo\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_caodo\"; width = 5; fixed_width = true; } }"
+          "      }"
+          "      : column {"
+          "       : row { : text { label = \"Ch\\U+1EEF \\U+0111\\U+1ED9 d\\U+1ED1c  -DODOC\"; width = 24; fixed_width = true; } : image_button { key = \"c_dodoc\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_dodoc\"; width = 5; fixed_width = true; } }"
+          "       : row { : text { label = \"V\\U+1EA1ch taluy  -VACHTALUY\"; width = 24; fixed_width = true; } : image_button { key = \"c_vach\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_vach\"; width = 5; fixed_width = true; } }"
+          "       : row { : text { label = \"T\\U+00EAn c\\U+1ECDc  -TENCOC\"; width = 24; fixed_width = true; } : image_button { key = \"c_ten\"; width = 5; height = 1; fixed_width = true; fixed_height = true; } : text { key = \"t_ten\"; width = 5; fixed_width = true; } }"
+          "      }"
+          "     }"
+          "     : toggle { key = \"m_maugoc\"; label = \"Polyline ngang/d\\U+1ECDc l\\U+1EA5y m\\U+00E0u theo l\\U+1EDBp g\\U+1ED1c (m\\U+1EB7t \\U+0111\\U+01B0\\U+1EDDng, l\\U+1EC1, taluy... m\\U+1ED7i lo\\U+1EA1i m\\U+1ED9t m\\U+00E0u)\"; }"
+          "    }"
+          "    : text { label = \"Kh\\U+00F4ng gi\\U+1EDBi h\\U+1EA1n s\\U+1ED1 tr\\U+1EAFc ngang. Taluy, gi\\U+1EADt c\\U+01A1, \\U+0111\\U+1ED9 d\\U+1ED1c l\\U+1EA5y theo l\\U+1EDBp thi\\U+1EBFt k\\U+1EBF.\"; }"
           "   }"
           "  }"
-          "  : boxed_column { label = \"L\\U+1EDBp v\\U+1EBD\";"
-          "   : edit_box { key = \"layer\"; label = \"T\\U+00EAn l\\U+1EDBp g\\U+1ED1c\"; edit_width = 20; }"
-          "   : text { label = \"M\\U+00E0u c\\U+1EE7a t\\U+1EA5t c\\U+1EA3 v\\U+1EA1ch theo l\\U+1EDBp n\\U+00E0y.\"; }"
-          "  }"
-          "  : boxed_column { label = \"K\\U+00EDch th\\U+01B0\\U+1EDBc v\\U+1EA1ch\";"
-          "   : popup_list { key = \"unit\"; label = \"\\U+0110\\U+01A1n v\\U+1ECB s\\U+1ED1 nh\\U+1EADp\"; width = 17; }"
-          "   : edit_box { key = \"buoc\"; label = \"Kho\\U+1EA3ng c\\U+00E1ch gi\\U+1EEFa 2 v\\U+1EA1ch\"; edit_width = 9; }"
-          "   : row {"
-          "    : edit_box { key = \"rong\"; label = \"Chi\\U+1EC1u d\\U+00E0i v\\U+1EA1ch d\\U+00E0i\"; edit_width = 9; }"
-          "    : edit_box { key = \"ngan\"; label = \"Chi\\U+1EC1u d\\U+00E0i v\\U+1EA1ch ng\\U+1EAFn\"; edit_width = 9; }"
-          "   }"
-          "   : text { label = \"Hai chi\\U+1EC1u d\\U+00E0i nh\\U+1EADp t\\U+00F9y ch\\U+1ECDn; c\\U+00F3 th\\U+1EC3 b\\U+1EB1ng nhau.\"; }"
-          "   : text { label = \"Khi ch\\U+1ECDn 2 m\\U+00E9p, v\\U+1EA1ch d\\U+00E0i t\\U+1EDBi m\\U+00E9p th\\U+1EE9 hai.\"; }"
-          "   : text { label = \"V\\U+1EA1ch ng\\U+1EAFn nh\\U+1EADp chi\\U+1EC1u d\\U+00E0i th\\U+1EF1c, t\\U+1ED1i \\U+0111\\U+00E0 kh\\U+00F4ng v\\U+01B0\\U+1EE3t m\\U+00E9p \\U+0111\\U+00EDch.\"; }"
-          "  }"
-          "  : boxed_row { label = \"Chu k\\U+1EF3 v\\U+1EA1ch (l\\U+1EB7p su\\U+1ED1t tuy\\U+1EBFn)\";"
-          "   : edit_box { key = \"sodai\"; label = \"S\\U+1ED1 v\\U+1EA1ch d\\U+00E0i\"; edit_width = 6; }"
-          "   : edit_box { key = \"songan\"; label = \"S\\U+1ED1 v\\U+1EA1ch ng\\U+1EAFn\"; edit_width = 6; }"
-          "  }"
-          "  : text { label = \"V\\U+00ED d\\U+1EE5: 1 d\\U+00E0i + 3 ng\\U+1EAFn; ho\\U+1EB7c 2 d\\U+00E0i + 5 ng\\U+1EAFn.\"; }"
           "  ok_cancel;"
           " }"
           "}"
@@ -94,16 +167,36 @@
 (defun VTL:positive-integer (n)
   (and (numberp n) (>= n 0.0) (= n (float (fix n)))))
 
+; Doi kieu dap/dao: lop dang la ten mac dinh thi doi theo kieu.
 (defun VTL:set-type (kind / current)
   (setq current (get_tile "layer"))
   (if (member current '("VTL-DAP" "VTL-DAO"))
-    (set_tile "layer" (strcat "VTL-" kind))))
+    (set_tile "layer" (strcat "VTL-" kind)))
+  (VTL:refresh))
 
-(defun VTL:set-edge-mode (one-edge)
-  ; Hai mep: vach dai cham mep dich nen o chieu dai dai khong su dung.
-  (mode_tile "rong" (if one-edge 0 1)))
+; Bat/tat o nhap: chi nhom cua chuc nang dang chon duoc sua.
+(defun VTL:refresh (/ ta tn tk k)
+  (setq ta (= (get_tile "f_taluy") "1") tn (not ta)
+        tk (= (get_tile "m_tk") "1"))
+  ; Ve ky hieu taluy tren binh do
+  (foreach k '("dap" "dao" "mot" "hai" "layer" "unit" "buoc" "ngan" "sodai" "songan")
+    (mode_tile k (if ta 0 1)))
+  ; Hai mep: vach dai cham mep dich nen o chieu dai vach dai khong dung.
+  (mode_tile "rong" (if (and ta (= (get_tile "mot") "1")) 0 1))
+  ; Trien khai trac ngang
+  (foreach k '("m_tk" "m_ks" "m_that" "m_thang" "m_lbang" "m_lly" "m_ltk" "m_lks"
+               "m_prefix" "m_font" "m_hchu" "m_tyle" "m_k3d" "m_klw" "m_maugoc"
+               "m_caodo" "m_dodoc" "m_tencoc" "m_doc"
+               "c_ngang" "c_doc" "c_caodo" "c_dodoc" "c_ten")
+    (mode_tile k (if tn 0 1)))
+  (mode_tile "m_width" (if (and tn (= (get_tile "m_klw") "1")) 0 1))
+  ; Ky hieu taluy chi co o trac ngang thiet ke.
+  (foreach k '("m_kyhieu" "m_ltaluy" "c_vach")
+    (mode_tile k (if (and tn tk) 0 1)))
+  (mode_tile "m_buoc" (if (and tn tk (= (get_tile "m_kyhieu") "1")) 0 1)))
 
-(defun VTL:accept (/ layer step width shortlen nl ns msg)
+; Kiem tra va luu thiet lap ve taluy. Tra T neu hop le.
+(defun VTL:accept-taluy (/ layer step width shortlen nl ns msg)
   (setq layer (vl-string-trim " " (get_tile "layer"))
         step (VTL:number "buoc") width (VTL:number "rong")
         shortlen (VTL:number "ngan")
@@ -123,7 +216,7 @@
                (> (+ nl ns) 0)))
      (setq msg "So vach dai/ngan phai la so nguyen khong am; tong > 0.")))
   (if msg
-    (alert msg)
+    (progn (alert msg) nil)
     (progn
       (setq *VTL:PENDING*
         (list (if (= (get_tile "dao") "1") "1" "0")
@@ -134,15 +227,25 @@
               (VTL:str (if (and (numberp width) (> width 0.0)) width 1.0))
               (VTL:str shortlen)
               (get_tile "unit") (itoa (fix nl)) (itoa (fix ns))))
+      T)))
+
+; OK: kiem tra theo chuc nang dang chon.
+(defun VTL:accept (/ tn)
+  (setq tn (= (get_tile "f_tnmb") "1"))
+  (if (if tn (TNMB:accept) (VTL:accept-taluy))
+    (progn
+      (setq *VTL:FN-PENDING* (if tn "TNMB" "TALUY"))
       (done_dialog 1))))
 
-(defun VTL:dialog (/ path dcl id status units)
+; Hop thoai chung. Tra "TALUY" / "TNMB" theo chuc nang chon, nil neu huy.
+(defun VTL:dialog (/ path dcl status k)
   (setq path (vl-filename-mktemp "VTL" nil ".dcl"))
   (cond
     ((not (VTL:write-dcl path)) (alert "Khong ghi duoc hop thoai VTL."))
     ((<= (setq dcl (load_dialog path)) 0) (alert "Khong nap duoc hop thoai VTL."))
     ((not (new_dialog "vtl_dialog" dcl)) (alert "Khong mo duoc hop thoai VTL."))
-    (t
+    (T
+      ; Nhom ve taluy tren binh do
       (start_list "unit")
       (mapcar 'add_list '("mm" "cm" "m"))
       (end_list)
@@ -156,17 +259,30 @@
                 (nth 10 *VTL:CFG*))))
       (set_tile (if (= (car *VTL:CFG*) "1") "dao" "dap") "1")
       (set_tile (if (= (cadr *VTL:CFG*) "1") "hai" "mot") "1")
-      (VTL:set-edge-mode (= (cadr *VTL:CFG*) "0"))
+      ; Nhom trien khai trac ngang
+      (TNMB:init-tiles)
+      ; Chuc nang lan truoc
+      (set_tile (if (= *VTL:FN* "TNMB") "f_tnmb" "f_taluy") "1")
+      (VTL:refresh)
+      (foreach k '("f_taluy" "f_tnmb" "mot" "hai" "m_k3d" "m_klw" "m_kyhieu")
+        (action_tile k "(VTL:refresh)"))
       (action_tile "dao" "(VTL:set-type \"DAO\")")
       (action_tile "dap" "(VTL:set-type \"DAP\")")
-      (action_tile "mot" "(VTL:set-edge-mode T)")
-      (action_tile "hai" "(VTL:set-edge-mode nil)")
+      (action_tile "m_tk" "(TNMB:set-type T)")
+      (action_tile "m_ks" "(TNMB:set-type nil)")
+      (foreach k (mapcar 'car *TNMB:PARTS*)
+        (action_tile k "(TNMB:pick-color $key)"))
       (action_tile "accept" "(VTL:accept)")
       (setq status (start_dialog))
-      (if (= status 1) (setq *VTL:CFG* *VTL:PENDING*))))
+      (if (= status 1)
+        (progn
+          (setq *VTL:FN* *VTL:FN-PENDING*)
+          (if (= *VTL:FN* "TNMB")
+            (setq *TNMB:CFG* *TNMB:PENDING*)
+            (setq *VTL:CFG* *VTL:PENDING*))))))
   (if (and dcl (> dcl 0)) (unload_dialog dcl))
   (if (and path (findfile path)) (vl-file-delete path))
-  (= status 1))
+  (if (= status 1) *VTL:FN*))
 
 ; Hinh hoc trong mat phang WCS XY. Ham tra so huu ti de tranh bo qua mep cong.
 (defun VTL:xy (p) (list (car p) (cadr p)))
@@ -469,7 +585,7 @@
   r)
 
 (defun C:VTL (/ *error* doc oldvars undo cfg mode ss first second pick i result
-                 total skip failed blocks again item)
+                 total skip failed blocks again item fn)
   (vl-load-com)
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object))
         oldvars (mapcar '(lambda (x) (cons x (getvar x)))
@@ -481,7 +597,11 @@
     (if (and msg (not (wcmatch (strcase msg) "*CANCEL*,*QUIT*,*EXIT*")))
       (princ (strcat "\nVTL loi: " msg)))
     (princ))
-  (if (VTL:dialog)
+  ; Hop thoai chung: "TALUY" ve ky hieu taluy, "TNMB" trien khai trac ngang.
+  (setq fn (VTL:dialog))
+  ; Trien khai trac ngang tu luu/khoi phuc bien he thong va undo rieng.
+  (if (= fn "TNMB") (TNMB:run))
+  (if (= fn "TALUY")
     (progn
        (setq cfg (VTL:scaled-cfg *VTL:CFG*)
               mode (cadr *VTL:CFG*) total 0 skip 0 failed 0 blocks 0)
@@ -557,6 +677,7 @@
 
 ;;; ======================================================================
 ;;; TNMB - TRIEN KHAI TRAC NGANG THANH MAT BANG (XYZ)
+;;; (chuc nang thu 2 trong hop thoai lenh VTL; go TNMB cung mo hop thoai nay)
 ;;; Doc trac ngang ADS Civil (ty le ngang = dung = 1, don vi m):
 ;;;  - Tim mat cat : LINE dung tren lop bang (TK-ADS-9402*), chan tai mep tren bang.
 ;;;  - Ly trinh    : chu "Km a + b" (TK-ADS-9407*) phia tren duong tim.
@@ -564,104 +685,90 @@
 ;;;  - Cao do      : Z = MSS + (y - y mep tren bang); khoang cach le = x - x tim.
 ;;; Ra mat bang   : P(ly trinh) tren tim tuyen; ben trai trac ngang = ben trai
 ;;;                 tuyen theo chieu ly trinh tang.
+;;; Moi phan ket qua mot layer rieng: <tien to>-NGANG, -DOC, -CAODO, -DODOC,
+;;; -VACHTALUY, -TENCOC; mau chon trong hop thoai la mau layer.
 ;;; ======================================================================
 
 (setq *TNMB:LAYER-TK* "MB-TN-THIETKE" *TNMB:LAYER-KS* "MB-TN-KHAOSAT")
 
+; Phan ket qua: (o mau, hau to layer, vi tri mau trong CFG, ten trong ngu canh).
+(setq *TNMB:PARTS*
+  '(("c_ngang" "-NGANG" 17 L-ngang) ("c_doc" "-DOC" 18 L-doc)
+    ("c_caodo" "-CAODO" 19 L-caodo) ("c_dodoc" "-DODOC" 20 L-dodoc)
+    ("c_vach" "-VACHTALUY" 21 L-vach) ("c_ten" "-TENCOC" 22 L-ten)))
+
 ; Cau hinh (chuoi): 0 loai TK/KS, 1 dinh vi THAT/THANG, 2 lop bang, 3 lop ly trinh,
-; 4 lop thiet ke, 5 lop khao sat, 6 lop taluy, 7 layer ket qua, 8 font, 9 cao chu mm,
-; 10 width mm, 11 ty le 1/N, 12 kieu 3D/LW, 13 noi doc, 14 do doc, 15 ky hieu, 16 buoc m.
-(if (not (and *TNMB:CFG* (= (length *TNMB:CFG*) 17)))
-  (setq *TNMB:CFG*
-    (list "TK" "THAT" "TK-ADS-9402*" "TK-ADS-9407*" "TK-DBO-17*"
-          "KS-TUY-2501*" "*TALUY*" *TNMB:LAYER-TK* "VNI-Times"
-          "1.8" "0.05" "1" "3D" "1" "1" "1" "1")))
+; 4 lop thiet ke, 5 lop khao sat, 6 lop taluy, 7 tien to layer, 8 font, 9 cao chu mm,
+; 10 width mm, 11 ty le 1/N, 12 kieu 3D/LW, 13 noi doc, 14 do doc, 15 ky hieu,
+; 16 buoc vach m, 17-22 mau layer ngang/doc/cao do/do doc/vach/ten coc,
+; 23 polyline lay mau theo lop goc, 24 hien cao do, 25 hien ten coc.
+(cond
+  ((and *TNMB:CFG* (= (length *TNMB:CFG*) 26)))
+  ((and *TNMB:CFG* (= (length *TNMB:CFG*) 24))
+   (setq *TNMB:CFG* (append *TNMB:CFG* '("1" "1"))))
+  ((and *TNMB:CFG* (= (length *TNMB:CFG*) 17))
+   (setq *TNMB:CFG* (append *TNMB:CFG* '("1" "4" "7" "3" "8" "2" "0" "1" "1"))))
+  (T
+   (setq *TNMB:CFG*
+     (list "TK" "THAT" "TK-ADS-9402*" "TK-ADS-9407*" "TK-DBO-17*"
+           "KS-TUY-2501*" "*TALUY*" *TNMB:LAYER-TK* "VNI-Times"
+           "1.8" "0.05" "1" "3D" "1" "1" "1" "1"
+           "1" "4" "7" "3" "8" "2" "0" "1" "1"))))
+(if (not *VTL:FN*) (setq *VTL:FN* "TALUY"))
 
-(defun TNMB:write-dcl (path / file row)
-  (if (setq file (open path "w"))
+;; ---------- Hop thoai (nhom trac ngang) ----------
+
+; O nhap / o chon -> vi tri trong CFG.
+(setq *TNMB:TILES*
+  '(("m_lbang" . 2) ("m_lly" . 3) ("m_ltk" . 4) ("m_lks" . 5) ("m_ltaluy" . 6)
+    ("m_prefix" . 7) ("m_font" . 8) ("m_hchu" . 9) ("m_width" . 10) ("m_tyle" . 11)
+    ("m_doc" . 13) ("m_dodoc" . 14) ("m_kyhieu" . 15) ("m_buoc" . 16) ("m_maugoc" . 23)
+    ("m_caodo" . 24) ("m_tencoc" . 25)))
+
+(defun TNMB:init-tiles (/ cfg p)
+  (setq cfg *TNMB:CFG*)
+  (foreach p *TNMB:TILES* (set_tile (car p) (nth (cdr p) cfg)))
+  (set_tile (if (= (nth 0 cfg) "KS") "m_ks" "m_tk") "1")
+  (set_tile (if (= (nth 1 cfg) "THANG") "m_thang" "m_that") "1")
+  (set_tile (if (= (nth 12 cfg) "LW") "m_klw" "m_k3d") "1")
+  (setq *TNMB:COLS* (mapcar '(lambda (p) (cons (car p) (nth (caddr p) cfg))) *TNMB:PARTS*))
+  (foreach p *TNMB:PARTS* (TNMB:show-color (car p))))
+
+; To o mau va ghi so mau ben canh.
+(defun TNMB:show-color (key / c)
+  (setq c (atoi (cdr (assoc key *TNMB:COLS*))))
+  (start_image key)
+  (fill_image 0 0 (dimx_tile key) (dimy_tile key) c)
+  (end_image)
+  (set_tile (strcat "t" (substr key 2)) (itoa c)))
+
+; Bang mau AutoCAD (mau layer: khong cho ByLayer/ByBlock).
+(defun TNMB:pick-color (key / c)
+  (if (setq c (acad_colordlg (atoi (cdr (assoc key *TNMB:COLS*))) nil))
     (progn
-      (foreach row
-        (list
-          "tnmb_dialog : dialog {"
-          " label = \"Tri\\U+1EC3n khai tr\\U+1EAFc ngang th\\U+00E0nh m\\U+1EB7t b\\U+1EB1ng - TNMB\";"
-          " : column {"
-          "  : row {"
-          "   : boxed_radio_column { label = \"Lo\\U+1EA1i tr\\U+1EAFc ngang\";"
-          "    : radio_button { key = \"tk\"; label = \"Thi\\U+1EBFt k\\U+1EBF\"; }"
-          "    : radio_button { key = \"ks\"; label = \"Kh\\U+1EA3o s\\U+00E1t (t\\U+1EF1 nhi\\U+00EAn)\"; }"
-          "   }"
-          "   : boxed_radio_column { label = \"\\U+0110\\U+1ECBnh v\\U+1ECB m\\U+1EB7t b\\U+1EB1ng\";"
-          "    : radio_button { key = \"that\"; label = \"T\\U+1ECDa \\U+0111\\U+1ED9 th\\U+1EADt VN-2000 (ch\\U+1ECDn tim tuy\\U+1EBFn)\"; }"
-          "    : radio_button { key = \"thang\"; label = \"Du\\U+1ED7i th\\U+1EB3ng t\\U+1EA1i \\U+0111i\\U+1EC3m pick\"; }"
-          "   }"
-          "  }"
-          "  : boxed_column { label = \"Nh\\U+1EADn d\\U+1EA1ng l\\U+1EDBp (wildcard, c\\U+00E1ch nhau d\\U+1EA5u ph\\U+1EA9y)\";"
-          "   : edit_box { key = \"lbang\"; label = \"B\\U+1EA3ng tr\\U+1EAFc ngang (\\U+0111\\U+01B0\\U+1EDDng tim)\"; edit_width = 28; }"
-          "   : edit_box { key = \"lly\"; label = \"Ch\\U+1EEF l\\U+00FD tr\\U+00ECnh\"; edit_width = 28; }"
-          "   : edit_box { key = \"ltk\"; label = \"L\\U+1EDBp thi\\U+1EBFt k\\U+1EBF\"; edit_width = 28; }"
-          "   : edit_box { key = \"lks\"; label = \"L\\U+1EDBp kh\\U+1EA3o s\\U+00E1t\"; edit_width = 28; }"
-          "   : edit_box { key = \"ltaluy\"; label = \"L\\U+1EDBp taluy (k\\U+00FD hi\\U+1EC7u)\"; edit_width = 28; }"
-          "  }"
-          "  : boxed_column { label = \"K\\U+1EBFt qu\\U+1EA3\";"
-          "   : edit_box { key = \"lout\"; label = \"Layer k\\U+1EBFt qu\\U+1EA3\"; edit_width = 28; }"
-          "   : row {"
-          "    : edit_box { key = \"font\"; label = \"Font ch\\U+1EEF\"; edit_width = 12; }"
-          "    : edit_box { key = \"hchu\"; label = \"Cao ch\\U+1EEF (mm)\"; edit_width = 6; }"
-          "   }"
-          "   : row {"
-          "    : edit_box { key = \"width\"; label = \"Global Width (mm)\"; edit_width = 6; }"
-          "    : edit_box { key = \"tyle\"; label = \"T\\U+1EF7 l\\U+1EC7 1/\"; edit_width = 6; }"
-          "   }"
-          "   : radio_row {"
-          "    : radio_button { key = \"k3d\"; label = \"Polyline 3D (Z th\\U+1EADt t\\U+1EEBng \\U+0111\\U+1EC9nh)\"; }"
-          "    : radio_button { key = \"klw\"; label = \"LWPolyline c\\U+00F3 Global Width\"; }"
-          "   }"
-          "   : row {"
-          "    : toggle { key = \"doc\"; label = \"N\\U+1ED1i d\\U+1ECDc c\\U+00E1c \\U+0111i\\U+1EC3m c\\U+00F9ng lo\\U+1EA1i\"; }"
-          "    : toggle { key = \"dodoc\"; label = \"Ghi \\U+0111\\U+1ED9 d\\U+1ED1c\"; }"
-          "   }"
-          "   : row {"
-          "    : toggle { key = \"kyhieu\"; label = \"V\\U+1EBD k\\U+00FD hi\\U+1EC7u taluy\"; }"
-          "    : edit_box { key = \"buoc\"; label = \"B\\U+01B0\\U+1EDBc v\\U+1EA1ch taluy (m)\"; edit_width = 6; }"
-          "   }"
-          "  }"
-          "  : text { label = \"T\\U+1ED1i \\U+0111a 50 tr\\U+1EAFc ngang m\\U+1ED7i l\\U+1EA7n. Taluy, gi\\U+1EADt c\\U+01A1, \\U+0111\\U+1ED9 d\\U+1ED1c l\\U+1EA5y theo l\\U+1EDBp thi\\U+1EBFt k\\U+1EBF.\"; }"
-          "  ok_cancel;"
-          " }"
-          "}"
-        )
-        (write-line row file))
-      (close file)
-      t)))
+      (setq *TNMB:COLS* (subst (cons key (itoa c)) (assoc key *TNMB:COLS*) *TNMB:COLS*))
+      (TNMB:show-color key))))
 
-; Bat/tat o nhap theo lua chon.
-(defun TNMB:modes (/ tk)
-  (setq tk (= (get_tile "tk") "1"))
-  (mode_tile "width" (if (= (get_tile "klw") "1") 0 1))
-  (mode_tile "dodoc" (if tk 0 1))
-  (mode_tile "kyhieu" (if tk 0 1))
-  (mode_tile "ltaluy" (if tk 0 1))
-  (mode_tile "buoc" (if (and tk (= (get_tile "kyhieu") "1")) 0 1)))
-
-; Doi loai: layer ket qua dang la ten mac dinh thi doi theo loai.
+; Doi loai: tien to layer dang la ten mac dinh thi doi theo loai.
 (defun TNMB:set-type (tk / cur)
-  (setq cur (get_tile "lout"))
+  (setq cur (get_tile "m_prefix"))
   (if (member cur (list *TNMB:LAYER-TK* *TNMB:LAYER-KS*))
-    (set_tile "lout" (if tk *TNMB:LAYER-TK* *TNMB:LAYER-KS*)))
-  (TNMB:modes))
+    (set_tile "m_prefix" (if tk *TNMB:LAYER-TK* *TNMB:LAYER-KS*)))
+  (VTL:refresh))
 
 (defun TNMB:trim (key) (vl-string-trim " " (get_tile key)))
 
-(defun TNMB:accept (/ tk h w n step msg)
-  (setq tk (= (get_tile "tk") "1")
-        h (VTL:number "hchu") w (VTL:number "width")
-        n (VTL:number "tyle") step (VTL:number "buoc") msg nil)
+; Kiem tra va luu thiet lap trac ngang. Tra T neu hop le.
+(defun TNMB:accept (/ tk prefix h w n step msg)
+  (setq tk (= (get_tile "m_tk") "1") prefix (TNMB:trim "m_prefix")
+        h (VTL:number "m_hchu") w (VTL:number "m_width")
+        n (VTL:number "m_tyle") step (VTL:number "m_buoc") msg nil)
   (cond
-    ((not (snvalid (TNMB:trim "lout")))
-     (setq msg "Ten layer ket qua khong hop le."))
-    ((member "" (mapcar 'TNMB:trim '("lbang" "lly" "ltk" "lks")))
+    ((or (= prefix "") (not (snvalid (strcat prefix "-VACHTALUY"))))
+     (setq msg "Tien to layer khong hop le."))
+    ((member "" (mapcar 'TNMB:trim '("m_lbang" "m_lly" "m_ltk" "m_lks")))
      (setq msg "Cac o nhan dang lop khong duoc de trong."))
-    ((= (TNMB:trim "font") "")
+    ((= (TNMB:trim "m_font") "")
      (setq msg "Chua nhap font chu."))
     ((not (and h (> h 0.0)))
      (setq msg "Cao chu phai lon hon 0."))
@@ -669,50 +776,26 @@
      (setq msg "Global Width phai >= 0."))
     ((not (and n (> n 0.0)))
      (setq msg "Ty le 1/N: N phai lon hon 0."))
-    ((and tk (= (get_tile "kyhieu") "1") (= (TNMB:trim "ltaluy") ""))
+    ((and tk (= (get_tile "m_kyhieu") "1") (= (TNMB:trim "m_ltaluy") ""))
      (setq msg "Ve ky hieu taluy: phai nhap lop taluy."))
-    ((and tk (= (get_tile "kyhieu") "1") (not (and step (> step 0.0))))
+    ((and tk (= (get_tile "m_kyhieu") "1") (not (and step (> step 0.0))))
      (setq msg "Buoc vach taluy phai lon hon 0.")))
   (if msg
-    (alert msg)
+    (progn (alert msg) nil)
     (progn
       (setq *TNMB:PENDING*
-        (list (if tk "TK" "KS")
-              (if (= (get_tile "thang") "1") "THANG" "THAT")
-              (TNMB:trim "lbang") (TNMB:trim "lly") (TNMB:trim "ltk")
-              (TNMB:trim "lks") (TNMB:trim "ltaluy") (TNMB:trim "lout")
-              (TNMB:trim "font") (VTL:str h) (VTL:str w) (VTL:str n)
-              (if (= (get_tile "klw") "1") "LW" "3D")
-              (get_tile "doc") (get_tile "dodoc") (get_tile "kyhieu")
-              (if (and step (> step 0.0)) (VTL:str step) (nth 16 *TNMB:CFG*))))
-      (done_dialog 1))))
-
-(defun TNMB:dialog (/ path dcl status cfg)
-  (setq path (vl-filename-mktemp "TNMB" nil ".dcl") cfg *TNMB:CFG*)
-  (cond
-    ((not (TNMB:write-dcl path)) (alert "Khong ghi duoc hop thoai TNMB."))
-    ((<= (setq dcl (load_dialog path)) 0) (alert "Khong nap duoc hop thoai TNMB."))
-    ((not (new_dialog "tnmb_dialog" dcl)) (alert "Khong mo duoc hop thoai TNMB."))
-    (t
-      (mapcar '(lambda (k i) (set_tile k (nth i cfg)))
-              '("lbang" "lly" "ltk" "lks" "ltaluy" "lout" "font" "hchu" "width" "tyle"
-                "doc" "dodoc" "kyhieu" "buoc")
-              '(2 3 4 5 6 7 8 9 10 11 13 14 15 16))
-      (set_tile (if (= (nth 0 cfg) "KS") "ks" "tk") "1")
-      (set_tile (if (= (nth 1 cfg) "THANG") "thang" "that") "1")
-      (set_tile (if (= (nth 12 cfg) "LW") "klw" "k3d") "1")
-      (TNMB:modes)
-      (action_tile "tk" "(TNMB:set-type T)")
-      (action_tile "ks" "(TNMB:set-type nil)")
-      (action_tile "k3d" "(TNMB:modes)")
-      (action_tile "klw" "(TNMB:modes)")
-      (action_tile "kyhieu" "(TNMB:modes)")
-      (action_tile "accept" "(TNMB:accept)")
-      (setq status (start_dialog))
-      (if (= status 1) (setq *TNMB:CFG* *TNMB:PENDING*))))
-  (if (and dcl (> dcl 0)) (unload_dialog dcl))
-  (if (and path (findfile path)) (vl-file-delete path))
-  (= status 1))
+        (append
+          (list (if tk "TK" "KS")
+                (if (= (get_tile "m_thang") "1") "THANG" "THAT")
+                (TNMB:trim "m_lbang") (TNMB:trim "m_lly") (TNMB:trim "m_ltk")
+                (TNMB:trim "m_lks") (TNMB:trim "m_ltaluy") prefix
+                (TNMB:trim "m_font") (VTL:str h) (VTL:str w) (VTL:str n)
+                (if (= (get_tile "m_klw") "1") "LW" "3D")
+                (get_tile "m_doc") (get_tile "m_dodoc") (get_tile "m_kyhieu")
+                (if (and step (> step 0.0)) (VTL:str step) (nth 16 *TNMB:CFG*)))
+          (mapcar '(lambda (p) (cdr (assoc (car p) *TNMB:COLS*))) *TNMB:PARTS*)
+          (list (get_tile "m_maugoc") (get_tile "m_caodo") (get_tile "m_tencoc"))))
+      T)))
 
 ;; ---------- Doc chu ----------
 
@@ -737,8 +820,8 @@
           (setq i (+ i 2))
           (while (and (<= i n) (/= (substr s i 1) ";")) (setq i (1+ i)))
           (setq i (1+ i)))
-         (t (setq i (+ i 2)))))
-      (t (setq out (strcat out c) i (1+ i)))))
+         (T (setq i (+ i 2)))))
+      (T (setq out (strcat out c) i (1+ i)))))
   out)
 
 ; Noi dung TEXT/MTEXT (MTEXT: cac nhom 3 roi nhom 1).
@@ -791,8 +874,46 @@
     s))
 
 (defun TNMB:km-str (st / km)
-  (setq km (fix (/ (+ st 1e-6) 1000.0)))
-  (strcat "Km" (itoa km) "+" (rtos (- st (* 1000.0 km)) 2 2)))
+  (if (< st -1e-6)
+    (strcat "-" (TNMB:km-str (- st)))
+    (progn
+      (setq km (fix (/ (+ st 1e-6) 1000.0)))
+      (strcat "Km" (itoa km) "+" (rtos (abs (- st (* 1000.0 km))) 2 2)))))
+
+;; ---------- Sap xep / ghep nhanh (khong gioi han so trac ngang) ----------
+
+; Gan so thu tu: (y . x) -> (y k . x), de sap xep khong bao gio co 2 phan tu
+; "bang nhau" (vl-sort co the bo phan tu trung).
+(defun TNMB:tag (lst / k)
+  (setq k 0)
+  (mapcar '(lambda (e) (setq k (1+ k)) (cons (car e) (cons k (cdr e)))) lst))
+
+; Sap tang theo khoa dau, hoa thi theo so thu tu.
+(defun TNMB:ysort (lst)
+  (vl-sort lst '(lambda (a b) (if (= (car a) (car b)) (< (cadr a) (cadr b)) (< (car a) (car b))))))
+
+; Quet theo truc Y: diem ((y . p) ...) gap cua so ((y0 y1 . w) ...) khi y0 <= y <= y1.
+; Tra ve ((w . p) ...), cac cap cua cung mot diem nam lien nhau.
+; Thay cho vong lap long nhau diem x cua so (rat cham khi nhieu trac ngang).
+(defun TNMB:sweep (pts wins / active res y)
+  (setq pts (TNMB:ysort (TNMB:tag pts)) wins (TNMB:ysort (TNMB:tag wins)))
+  (foreach p pts
+    (setq y (car p))
+    (while (and wins (<= (car (car wins)) y))
+      (setq active (cons (car wins) active) wins (cdr wins)))
+    (setq active (vl-remove-if '(lambda (w) (< (caddr w) y)) active))
+    (foreach w active (setq res (cons (cons (cdddr w) (cddr p)) res))))
+  (reverse res))
+
+; Gom cap (chi-so . vat) thanh n nhom theo chi so 0..n-1.
+(defun TNMB:group (pairs n / sorted res i cur)
+  (setq sorted (TNMB:ysort (TNMB:tag pairs)) i 0)
+  (repeat n
+    (setq cur nil)
+    (while (and sorted (= (car (car sorted)) i))
+      (setq cur (cons (cddr (car sorted)) cur) sorted (cdr sorted)))
+    (setq res (cons (reverse cur) res) i (1+ i)))
+  (reverse res))
 
 ;; ---------- Nhan dien trac ngang ----------
 
@@ -847,15 +968,31 @@
 
 ; Duong tim = LINE dung co chan nam TRONG doan ngang mep tren bang.
 ; Ket qua: (x-tim y-chan y-dinh x-trai-bang x-phai-bang).
-(defun TNMB:raw-sections (hor ver / v h found res)
-  (foreach v ver
-    (setq found nil)
-    (foreach h hor
-      (if (and (null found) (< (abs (- (car h) (cadr v))) 1e-5)
-               (> (car v) (+ (cadr h) 1e-4)) (< (car v) (- (caddr h) 1e-4)))
-        (setq found h)))
-    (if found
-      (setq res (cons (list (car v) (cadr v) (caddr v) (cadr found) (caddr found)) res))))
+(defun TNMB:raw-sections (hor ver / pr h v prevv res)
+  (foreach pr (TNMB:sweep (mapcar '(lambda (v) (cons (cadr v) v)) ver)
+                          (mapcar '(lambda (h) (cons (- (car h) 1e-5) (cons (+ (car h) 1e-5) h)))
+                                  hor))
+    (setq h (car pr) v (cdr pr))
+    (if (and (> (car v) (+ (cadr h) 1e-4)) (< (car v) (- (caddr h) 1e-4))
+             ; 1 duong tim trung 2 duong ngang chong nhau -> chi lay 1 lan
+             (not (equal v prevv)))
+      (setq res (cons (list (car v) (cadr v) (caddr v) (cadr h) (caddr h)) res)
+            prevv v)))
+  (reverse res))
+
+; Cap (chi-so-mat-cat . chu) cho chu nam trong vung ly trinh + MSS cua tung mat cat.
+(defun TNMB:text-pairs (texts raw / r wins H pr w x res)
+  (setq r 0)
+  (foreach w raw
+    (setq H (- (nth 2 w) (nth 1 w))
+          wins (cons (cons (- (nth 1 w) (* 0.1 H)) (cons (+ (nth 2 w) (* 0.5 H)) (cons r w)))
+                     wins)
+          r (1+ r)))
+  (foreach pr (TNMB:sweep (mapcar '(lambda (item) (cons (cadr (caddr item)) item)) texts) wins)
+    ; w = (r x-tim y-chan y-dinh x-trai x-phai)
+    (setq w (car pr) H (- (nth 3 w) (nth 2 w)) x (car (caddr (cdr pr))))
+    (if (and (>= x (- (nth 4 w) (* 0.1 H))) (<= x (+ (nth 5 w) 1e-6)))
+      (setq res (cons (cons (car w) (cdr pr)) res))))
   res)
 
 ; Ly trinh gan dinh duong tim nhat; uu tien chu tren lop ly trinh.
@@ -890,23 +1027,36 @@
   best)
 
 ; Gan moi duong vao trac ngang chua tam bao cua no (gan tim nhat).
-; Trac ngang: (ly-trinh x-tim y-chan y-dinh x-trai x-phai MSS). Ket qua: ((chi-so . duong) ...)
-(defun TNMB:assign (polys secs / res item pts mx my k best bd d s H)
+; Trac ngang: (ly-trinh x-tim y-chan y-dinh x-trai x-phai MSS). Ket qua: ((chi-so lop diem) ...)
+(defun TNMB:assign (polys secs / s H wins id pts item xs ys pr w p d cur best bd res)
+  (setq s 0)
+  (foreach sec secs
+    (setq H (- (nth 3 sec) (nth 2 sec))
+          wins (cons (cons (- (nth 2 sec) (* 0.5 H)) (cons (+ (nth 3 sec) (* 0.5 H)) (cons s sec)))
+                     wins)
+          s (1+ s)))
+  ; Diem dai dien = tam bao: (my id mx my lop diem)
+  (setq id 0)
   (foreach item polys
-    (setq pts (cadr item)
-          mx (* 0.5 (+ (apply 'min (mapcar 'car pts)) (apply 'max (mapcar 'car pts))))
-          my (* 0.5 (+ (apply 'min (mapcar 'cadr pts)) (apply 'max (mapcar 'cadr pts))))
-          k 0 best nil bd nil)
-    (foreach s secs
-      (setq H (- (nth 3 s) (nth 2 s)))
-      (if (and (>= mx (nth 4 s)) (<= mx (nth 5 s))
-               (>= my (- (nth 2 s) (* 0.5 H))) (<= my (+ (nth 3 s) (* 0.5 H))))
-        (progn
-          (setq d (+ (abs (- mx (nth 1 s)))
-                     (abs (- my (* 0.5 (+ (nth 2 s) (nth 3 s)))))))
-          (if (or (null bd) (< d bd)) (setq bd d best k))))
-      (setq k (1+ k)))
-    (if best (setq res (cons (cons best item) res))))
+    (setq xs (mapcar 'car (cadr item)) ys (mapcar 'cadr (cadr item)) id (1+ id))
+    (setq p (list id (* 0.5 (+ (apply 'min xs) (apply 'max xs)))
+                     (* 0.5 (+ (apply 'min ys) (apply 'max ys)))))
+    (setq pts (cons (cons (caddr p) (append p item)) pts)))
+  (foreach pr (append (TNMB:sweep pts wins) (list nil))
+    ; Het cac cap cua 1 duong -> chot trac ngang gan nhat.
+    (if (and cur (or (null pr) (/= (car (cdr pr)) (car cur))))
+      (progn
+        (if best (setq res (cons (cons best (cdddr cur)) res)))
+        (setq cur nil best nil bd nil)))
+    (if pr
+      (progn
+        ; w = (s ly-trinh x-tim y-chan y-dinh x-trai x-phai MSS), p = (id mx my lop diem)
+        (setq w (car pr) p (cdr pr) cur p)
+        (if (and (>= (cadr p) (nth 5 w)) (<= (cadr p) (nth 6 w)))
+          (progn
+            (setq d (+ (abs (- (cadr p) (nth 2 w)))
+                       (abs (- (caddr p) (* 0.5 (+ (nth 3 w) (nth 4 w)))))))
+            (if (or (null bd) (< d bd)) (setq bd d best (car w))))))))
   res)
 
 ;; ---------- Thanh phan va toa do ----------
@@ -938,32 +1088,209 @@
               (and (= side "R") (> o1 o2))
               (and (= side "C") (> o1 o2)))
         (setq lst (reverse lst)))
-      (setq prefix (strcat (strcase lay) "|" side "|") n (length lst) i 0)
+      (setq prefix (strcat lay "|" side "|") n (length lst) i 0)
       (list lay side
         (mapcar '(lambda (p)
                    (setq i (1+ i))
-                   (cons (cond (ks (cond ((= i 1) "KS|DAU") ((= i n) "KS|CUOI")))
+                   (cons (cond (ks (cond ((= i 1) (strcat prefix "DAU"))
+                                         ((= i n) (strcat prefix "CUOI"))))
                                ((= i n) (strcat prefix "E"))
                                (T (strcat prefix (itoa (1- i)))))
                          p))
                 lst)))))
 
 ; Khung dinh vi tai ly trinh: (diem-tim-2D huong-tuyen-don-vi) hoac nil.
-; THAT : data = (tim-tuyen ly-trinh-dau chieu-dai)
+; THAT : data = (tim-tuyen d-moc ly-trinh-moc chieu chieu-dai)
+;        khoang cach tren tim tuyen d = d-moc + chieu * (ly trinh - ly-trinh-moc);
+;        chieu = -1 khi polyline ve nguoc chieu ly trinh.
 ; THANG: data = (diem-goc huong ly-trinh-goc)
-(defun TNMB:frame (st mode data / obj d p par der u)
+(defun TNMB:frame (st mode data / obj dir len d p par der u)
   (if (= mode "THAT")
     (progn
-      (setq obj (car data) d (- st (cadr data)))
-      (if (and (>= d -1e-6) (<= d (+ (caddr data) 1e-6)))
+      (setq obj (car data) dir (nth 3 data) len (nth 4 data)
+            d (+ (cadr data) (* dir (- st (caddr data)))))
+      (if (and (>= d -1e-6) (<= d (+ len 1e-6)))
         (progn
-          (setq d (max 0.0 (min d (caddr data)))
+          (setq d (max 0.0 (min d len))
                 p (vlax-curve-getPointAtDist obj d)
                 par (vlax-curve-getParamAtDist obj d)
                 der (if par (vlax-curve-getFirstDeriv obj par))
-                u (if der (VTL:unit (list (car der) (cadr der)))))
+                u (if der (VTL:unit (list (* dir (car der)) (* dir (cadr der))))))
           (if (and p u) (list (list (car p) (cadr p)) u)))))
     (list (VTL:plus (car data) (cadr data) (- st (caddr data))) (cadr data))))
+
+; Ly trinh go tay: "1540", "1540.5", "Km1+540", "1+540" -> met. Sai -> nil.
+(defun TNMB:parse-st (s / p a b)
+  (setq s (strcase (TNMB:nospace s)))
+  (if (setq p (vl-string-search "KM" s)) (setq s (substr s (+ p 3))))
+  (cond
+    ((= s "") nil)
+    ((setq p (vl-string-search "+" s))
+     (if (and (> p 0)
+              (setq a (TNMB:read-num (substr s 1 p)))
+              (setq b (TNMB:read-num (substr s (+ p 2)))))
+       (+ (* 1000.0 a) b)))
+    (T (TNMB:read-num s))))
+
+; Hoi ly trinh; Enter = mac dinh; go sai thi hoi lai.
+(defun TNMB:ask-st (msg def / s v again)
+  (setq again T)
+  (while again
+    (setq s (vl-string-trim " " (getstring T (strcat msg " (vd 1540 hoac Km1+540) <"
+                                                    (TNMB:km-str def) ">: "))))
+    (cond
+      ((= s "") (setq v def again nil))
+      ((setq v (TNMB:parse-st s)) (setq again nil))
+      (T (princ "\nLy trinh khong hop le."))))
+  v)
+
+; Diem moc tren tim tuyen: (khoang-cach-tren-tuyen ly-trinh) hoac nil neu Enter.
+; Enter o lan hoi dau = diem dau polyline. chord: (dinh khoang-cach) neu tuyen gay khuc.
+(defun TNMB:ask-mark (align chord msg first / pt w pr q d)
+  (setq pt (getpoint msg))
+  (cond
+    (pt
+      (setq w (trans pt 1 0))
+      (if chord
+        (setq pr (TNMB:ch-project (car chord) (cadr chord) w) d (car pr) q (cadr pr))
+        (setq q (vlax-curve-getClosestPointTo align w)
+              d (vlax-curve-getDistAtPoint align q)))
+      (if (> (distance (list (car q) (cadr q)) (list (car w) (cadr w))) 0.01)
+        (princ (strcat "\n(!) Diem pick cach tim tuyen "
+                       (rtos (distance (list (car q) (cadr q)) (list (car w) (cadr w))) 2 3)
+                       " m, lay hinh chieu len tim tuyen.")))
+      (list d (TNMB:ask-st "\nLy trinh tai diem moc" 0.0)))
+    (first
+      (list 0.0 (TNMB:ask-st "\nLy trinh tai DIEM DAU polyline tim tuyen" 0.0)))))
+
+;; ---------- Tim tuyen gay khuc qua tam coc (vd 3D polyline tim cua ADS) ----------
+;; Polyline khong co cung: moi dinh la tam 1 coc. Tinh 2D, khop coc vao dinh de khong
+;; tich luy sai so day cung; tiep tuyen tai dinh theo duong tron qua 3 dinh lien ke.
+
+; Dinh 2D cua polyline khong co cung (LWPOLYLINE/POLYLINE/3D POLYLINE); nil neu co cung.
+(defun TNMB:chord-verts (en / ed ty ok g v vd n k p pts)
+  (setq ed (entget en) ty (cdr (assoc 0 ed)) ok T)
+  (cond
+    ((= ty "LWPOLYLINE")
+     (foreach g ed (if (and (= (car g) 42) (> (abs (cdr g)) 1e-9)) (setq ok nil))))
+    ((= ty "POLYLINE")
+     (if (= 0 (logand 8 (cdr (assoc 70 ed))))
+       (progn
+         (setq v (entnext en))
+         (while (and v (= (cdr (assoc 0 (setq vd (entget v)))) "VERTEX"))
+           (if (and (assoc 42 vd) (> (abs (cdr (assoc 42 vd))) 1e-9)) (setq ok nil))
+           (setq v (entnext v))))))
+    (T (setq ok nil)))
+  (if ok
+    (progn
+      (setq n (fix (+ 0.5 (vlax-curve-getEndParam en))) k 0)
+      (repeat (1+ n)
+        (setq p (vlax-curve-getPointAtParam en k)
+              pts (cons (list (car p) (cadr p)) pts) k (1+ k)))
+      (setq pts (TNMB:dedupe (reverse pts)))
+      (if (cdr pts) pts))))
+
+; Khoang cach tich luy 2D tai cac dinh.
+(defun TNMB:cum (pts / c d prev p)
+  (setq d 0.0)
+  (foreach p pts
+    (if prev (setq d (+ d (distance prev p))))
+    (setq c (cons d c) prev p))
+  (reverse c))
+
+; Diem tai khoang cach d.
+(defun TNMB:ch-point (pts cum d / res a b ca cb)
+  (while (and (null res) (cdr pts))
+    (setq a (car pts) b (cadr pts) ca (car cum) cb (cadr cum))
+    (if (or (<= d (+ cb 1e-9)) (null (cddr pts)))
+      (setq res (TNMB:lerp a b (/ (- d ca) (- cb ca))))
+      (setq pts (cdr pts) cum (cdr cum))))
+  res)
+
+; Huong doan chua khoang cach d.
+(defun TNMB:ch-dir (pts cum d / res)
+  (while (and (null res) (cdr pts))
+    (if (or (<= d (+ (cadr cum) 1e-9)) (null (cddr pts)))
+      (setq res (VTL:unit (VTL:sub (cadr pts) (car pts))))
+      (setq pts (cdr pts) cum (cdr cum))))
+  res)
+
+; Hinh chieu diem q: (khoang-cach-doc-tuyen diem-chieu).
+(defun TNMB:ch-project (pts cum q / a b ab L2 k c dd bd best)
+  (setq q (list (car q) (cadr q)))
+  (while (cdr pts)
+    (setq a (car pts) b (cadr pts) ab (VTL:sub b a) L2 (VTL:dot ab ab))
+    (if (> L2 1e-18)
+      (progn
+        (setq k (max 0.0 (min 1.0 (/ (VTL:dot (VTL:sub q a) ab) L2)))
+              c (VTL:plus a ab k) dd (distance c q))
+        (if (or (null bd) (< dd bd))
+          (setq bd dd best (list (+ (car cum) (* k (- (cadr cum) (car cum)))) c)))))
+    (setq pts (cdr pts) cum (cdr cum)))
+  best)
+
+; Tiep tuyen tai P cua duong tron qua R-P-Q (thang hang: huong R->Q), chieu R->Q.
+(defun TNMB:tangent3 (r p q / ax ay bx by d cx cy u)
+  (setq ax (- (car r) (car p)) ay (- (cadr r) (cadr p))
+        bx (- (car q) (car p)) by (- (cadr q) (cadr p))
+        d (* 2.0 (- (* ax by) (* ay bx))))
+  (if (< (abs d) (* 1e-9 (+ (* ax ax) (* ay ay) (* bx bx) (* by by))))
+    (VTL:unit (VTL:sub q r))
+    (progn
+      ; Tam duong tron (goc toa do tai P); tiep tuyen vuong goc ban kinh.
+      (setq cx (/ (- (* by (+ (* ax ax) (* ay ay))) (* ay (+ (* bx bx) (* by by)))) d)
+            cy (/ (- (* ax (+ (* bx bx) (* by by))) (* bx (+ (* ax ax) (* ay ay)))) d)
+            u (VTL:unit (list (- cy) cx)))
+      (if (and u (< (VTL:dot u (VTL:sub q r)) 0.0)) (list (- (car u)) (- (cadr u))) u))))
+
+; Chi so dinh gan khoang cach d nhat trong dung sai, nil neu khong co.
+(defun TNMB:ch-snap (cum d tol / j bd best c)
+  (setq j 0)
+  (foreach c cum
+    (if (and (<= (abs (- c d)) tol) (or (null bd) (< (abs (- c d)) bd)))
+      (setq bd (abs (- c d)) best j))
+    (setq j (1+ j)))
+  best)
+
+; Ly trinh (tang dan) -> ((ly-trinh khoang-cach chi-so-dinh) ...). Di tu moc ra 2 phia,
+; moi coc tinh tu coc truoc (khong cong don sai so day cung) va khop vao dinh gan nhat.
+(defun TNMB:ch-map (sts cum d1 st1 dir / up dn lst st pd ps e tol j d res)
+  (foreach st sts (if (>= st st1) (setq up (cons st up)) (setq dn (cons st dn))))
+  (foreach lst (list (reverse up) dn)
+    (setq pd d1 ps st1)
+    (foreach st lst
+      (setq e (+ pd (* dir (- st ps)))
+            tol (max 0.05 (min 1.0 (* 0.3 (abs (- st ps)))))
+            j (TNMB:ch-snap cum e tol)
+            d (if j (nth j cum) e)
+            res (cons (list st d j) res)
+            pd d ps st)))
+  res)
+
+; Ba diem thang hang (lech huong < 1e-6 rad).
+(defun TNMB:collinear (a b c / u v)
+  (setq u (VTL:sub b a) v (VTL:sub c b))
+  (< (abs (VTL:cross u v)) (* 1e-6 (VTL:length u) (VTL:length v))))
+
+; Khung tai coc tren tuyen gay khuc: item = (khoang-cach chi-so-dinh).
+; Tiep tuyen tai dinh: ket thuc doan thang (coc TD) / bat dau doan thang (coc TC) thi
+; theo doan thang; trong duong cong theo duong tron qua 3 dinh lien ke.
+(defun TNMB:ch-frame (item verts cum dir len / d j n p u)
+  (setq d (car item) j (cadr item) n (length verts))
+  (if (and d (>= d -1e-6) (<= d (+ len 1e-6)))
+    (progn
+      (if j
+        (setq p (nth j verts)
+              u (cond ((= j 0) (VTL:unit (VTL:sub (nth 1 verts) p)))
+                      ((= j (1- n)) (VTL:unit (VTL:sub p (nth (- n 2) verts))))
+                      ((and (>= j 2) (TNMB:collinear (nth (- j 2) verts) (nth (1- j) verts) p))
+                       (VTL:unit (VTL:sub p (nth (1- j) verts))))
+                      ((and (<= j (- n 3)) (TNMB:collinear p (nth (1+ j) verts) (nth (+ j 2) verts)))
+                       (VTL:unit (VTL:sub (nth (1+ j) verts) p)))
+                      (T (TNMB:tangent3 (nth (1- j) verts) p (nth (1+ j) verts)))))
+        (setq p (TNMB:ch-point verts cum (max 0.0 (min d len)))
+              u (TNMB:ch-dir verts cum (max 0.0 (min d len)))))
+      (if (and p u) (list p (list (* dir (car u)) (* dir (cadr u))))))))
 
 ; Diem mat bang = tim - off * phap-tuyen-trai (off < 0 la ben trai).
 (defun TNMB:plan (frame off z / p u)
@@ -993,21 +1320,29 @@
 
 (defun TNMB:flat (p) (list (car p) (cadr p) (if (TNMB:c '3d) (caddr p) 0.0)))
 
-(defun TNMB:pline (pts / lay p)
-  (setq lay (TNMB:c 'layer))
+; Mau lop goc (cho tuy chon polyline theo mau lop goc); nil = theo layer ket qua.
+(defun TNMB:src-color (lay / ed)
+  (if (and lay (setq ed (tblsearch "LAYER" lay)) (assoc 62 ed))
+    (abs (cdr (assoc 62 ed)))))
+
+; Polyline 3D (hoac LWPolyline co Global Width) tren layer lay; col nil = ByLayer.
+(defun TNMB:pline (pts lay col / cl p)
+  (setq cl (if col (list (cons 62 col))))
   (if (TNMB:c '3d)
     (progn
-      (entmake (list '(0 . "POLYLINE") (cons 8 lay) '(66 . 1) '(10 0.0 0.0 0.0) '(70 . 8)))
+      (entmake (append (list '(0 . "POLYLINE") (cons 8 lay)) cl
+                       (list '(66 . 1) '(10 0.0 0.0 0.0) '(70 . 8))))
       (foreach p pts
-        (entmake (list '(0 . "VERTEX") (cons 8 lay) (cons 10 p) '(70 . 32))))
+        (entmake (append (list '(0 . "VERTEX") (cons 8 lay)) cl
+                         (list (cons 10 p) '(70 . 32)))))
       (entmake (list '(0 . "SEQEND") (cons 8 lay))))
-    (entmake (append (list '(0 . "LWPOLYLINE") '(100 . "AcDbEntity") (cons 8 lay)
-                           '(100 . "AcDbPolyline") (cons 90 (length pts)) '(70 . 0)
+    (entmake (append (list '(0 . "LWPOLYLINE") '(100 . "AcDbEntity") (cons 8 lay)) cl
+                     (list '(100 . "AcDbPolyline") (cons 90 (length pts)) '(70 . 0)
                            (cons 43 (TNMB:c 'w)) '(38 . 0.0))
                      (mapcar '(lambda (p) (cons 10 (list (car p) (cadr p)))) pts)))))
 
 (defun TNMB:line (p q)
-  (entmake (list '(0 . "LINE") (cons 8 (TNMB:c 'layer))
+  (entmake (list '(0 . "LINE") (cons 8 (TNMB:c 'L-vach))
                  (cons 10 (TNMB:flat p)) (cons 11 (TNMB:flat q)))))
 
 ; Huong chu doc duoc (quay ve phia phai / len tren).
@@ -1028,9 +1363,9 @@
 (defun TNMB:lerp (a b s) (mapcar '(lambda (x y) (+ x (* s (- y x)))) a b))
 
 ; Chu tai pt theo huong v; hj 0 trai, 1 giua, 2 phai (tren duong chan chu).
-(defun TNMB:text (pt str v hj / ins)
+(defun TNMB:text (pt str v hj lay / ins)
   (setq ins (TNMB:flat pt))
-  (entmake (list '(0 . "TEXT") (cons 8 (TNMB:c 'layer)) (cons 7 (TNMB:c 'style))
+  (entmake (list '(0 . "TEXT") (cons 8 lay) (cons 7 (TNMB:c 'style))
                  (cons 10 ins) (cons 11 ins) (cons 40 (TNMB:c 'h)) (cons 1 str)
                  (cons 50 (atan (cadr v) (car v))) '(41 . 1.0)
                  (cons 72 hj) '(73 . 0))))
@@ -1048,17 +1383,17 @@
         v (TNMB:readable u) n2 (TNMB:perp v) seen nil left nil)
   (foreach c (caddr sd)
     (setq pts (mapcar 'cadddr (caddr c)))
-    (TNMB:pline pts)
+    (TNMB:pline pts (TNMB:c 'L-ngang) (if (TNMB:c 'maugoc) (TNMB:src-color (car c))))
     (setq *TNMB:N-NGANG* (1+ *TNMB:N-NGANG*))
     ; Cao do: moi vi tri ghi 1 lan, chu song song tuyen, nam canh diem.
     (foreach p (caddr c)
       (if (or (null left) (< (cadr p) (cadr left))) (setq left p))
       (setq key (strcat (rtos (car (cadddr p)) 2 4) "," (rtos (cadr (cadddr p)) 2 4)))
-      (if (not (member key seen))
+      (if (and (TNMB:c 'caodo) (not (member key seen)))
         (progn
           (setq seen (cons key seen))
           (TNMB:text (TNMB:offset (cadddr p) v (* 0.5 h) n2 (* 0.3 h))
-                     (rtos (/ (caddr p) (TNMB:c 'm2cad)) 2 2) v 0)
+                     (rtos (/ (caddr p) (TNMB:c 'm2cad)) 2 2) v 0 (TNMB:c 'L-caodo))
           (setq *TNMB:N-CHU* (1+ *TNMB:N-CHU*)))))
     ; Do doc tung doan (bo doan dung nhu mat bo via).
     (if (TNMB:c 'slope)
@@ -1073,17 +1408,18 @@
               (TNMB:text (TNMB:offset (TNMB:mid (cadddr a) (cadddr b)) w 0.0
                                       (TNMB:perp w) (* 0.3 h))
                          (TNMB:slope-str (- (cadr b) (cadr a)) (- (caddr b) (caddr a)) taluy)
-                         w 1)
+                         w 1 (TNMB:c 'L-dodoc))
               (setq *TNMB:N-DOC* (1+ *TNMB:N-DOC*))))))))
   ; Ten coc o dau trai mat cat, theo phuong mat cat.
-  (if left
+  (if (and left (TNMB:c 'tencoc))
     (progn
       (setq dirn (TNMB:perp u)
             w (TNMB:readable dirn)
             p (TNMB:offset (cadddr left) dirn h dirn 0.0))
       (TNMB:text (TNMB:offset p w 0.0 (TNMB:perp w) (* -0.5 h))
                  (TNMB:km-str (car sec)) w
-                 (if (> (+ (* (car w) (car dirn)) (* (cadr w) (cadr dirn))) 0.0) 0 2)))))
+                 (if (> (+ (* (car w) (car dirn)) (* (cadr w) (cadr dirn))) 0.0) 0 2)
+                 (TNMB:c 'L-ten)))))
 
 (defun TNMB:sig (pts / s p)
   (setq s "")
@@ -1093,22 +1429,23 @@
   s)
 
 ; Noi doc: cac diem cung khoa o cac coc lien tiep -> 1 polyline; bo duong trung.
-(defun TNMB:longitudinal (sds / keys tables tb sd c p key cur sig sigs n)
+; Bang moi coc: ((khoa diem lop-goc) ...).
+(defun TNMB:longitudinal (sds / keys tables tb sd c p key cur lay sig sigs n)
   (foreach sd sds
-    (setq tb (if (nth 3 sd) (list (cons "TIM" (nth 3 sd)))))
+    (setq tb (if (nth 3 sd) (list (list "TIM" (nth 3 sd) nil))))
     (foreach c (caddr sd)
       (foreach p (caddr c)
         (if (and (car p) (not (assoc (car p) tb)))
-          (setq tb (cons (cons (car p) (cadddr p)) tb)))))
+          (setq tb (cons (list (car p) (cadddr p) (car c)) tb)))))
     (setq tables (cons tb tables))
     (foreach p (reverse tb)
       (if (not (member (car p) keys)) (setq keys (cons (car p) keys)))))
   (setq tables (reverse tables) n 0)
   (foreach key (reverse keys)
-    (setq cur nil)
+    (setq cur nil lay nil)
     (foreach tb (append tables (list nil))
-      (if (setq p (cdr (assoc key tb)))
-        (setq cur (cons p cur))
+      (if (setq p (assoc key tb))
+        (setq cur (cons (cadr p) cur) lay (caddr p))
         (progn
           (if (cdr cur)
             (progn
@@ -1116,7 +1453,8 @@
               (if (not (member sig sigs))
                 (progn
                   (setq sigs (cons sig sigs))
-                  (TNMB:pline (reverse cur))
+                  (TNMB:pline (reverse cur) (TNMB:c 'L-doc)
+                              (if (TNMB:c 'maugoc) (TNMB:src-color lay)))
                   (setq n (1+ n))))))
           (setq cur nil)))))
   n)
@@ -1131,7 +1469,7 @@
   (setq len (distance (list (car tA) (cadr tA)) (list (car tB) (cadr tB)))
         n (max 1 (fix (+ 0.5 (/ len (TNMB:c 'step))))) j 0)
   (repeat n
-    (if (< *TNMB:N-VACH* 200000)
+    (if (< *TNMB:N-VACH* 1000000)
       (progn
         (setq k (/ (float j) n) p (TNMB:lerp tA tB k) q (TNMB:lerp bA bB k))
         (if (= 1 (rem *TNMB:N-VACH* 2)) (setq q (TNMB:lerp p q 0.5)))
@@ -1168,18 +1506,23 @@
   (cond ((= ins 4) 1.0) ((= ins 5) 0.1) ((= ins 6) 0.001)
         ((= ins 0) (princ "\n(!) INSUNITS = 0: coi ban ve don vi met.") 0.001)))
 
-(defun TNMB:prepare-layer (name color / new obj)
-  (setq new (null (tblsearch "LAYER" name)))
-  (if (and (VTL:layer-visible name) (VTL:layer name color))
+; Tao layer (mau chon, net in 0.05 mm) hoac doi mau layer da co theo lua chon.
+(defun TNMB:prepare-layer (name color / layers obj)
+  (if (VTL:layer-visible name)
     (progn
-      (if new
+      (setq layers (vla-get-Layers (vla-get-ActiveDocument (vlax-get-acad-object))))
+      (if (tblsearch "LAYER" name)
         (progn
-          ; Net in 0.05 mm (acLnWt005).
-          (setq obj (vl-catch-all-apply 'vla-Item
-                      (list (vla-get-Layers (vla-get-ActiveDocument (vlax-get-acad-object))) name)))
+          (setq obj (vl-catch-all-apply 'vla-Item (list layers name)))
           (if (not (vl-catch-all-error-p obj))
-            (vl-catch-all-apply 'vla-put-Lineweight (list obj 5)))))
-      name)))
+            (vl-catch-all-apply 'vla-put-Color (list obj color)))
+          name)
+        (if (VTL:layer name color)
+          (progn
+            (setq obj (vl-catch-all-apply 'vla-Item (list layers name)))
+            (if (not (vl-catch-all-error-p obj))
+              (vl-catch-all-apply 'vla-put-Lineweight (list obj 5)))
+            name))))))
 
 ; Kieu chu TNMB-VNI dung font TrueType (mac dinh VNI-Times).
 (defun TNMB:style (font / name styles obj dirs found d)
@@ -1213,12 +1556,12 @@
       (setq r (vl-catch-all-apply 'vlax-curve-getDistAtParam (list obj e)))
       (if (and (not (vl-catch-all-error-p r)) (numberp r) (> r 0.0)) r))))
 
-;; ---------- Lenh ----------
+;; ---------- Thuc hien (goi tu lenh VTL sau khi chon chuc nang trac ngang) ----------
 
-(defun C:TNMB (/ *error* doc oldvars undo cfg mm2cad m2cad ss data raw secs sec st mss
-                 buckets sds comps item frame mode pdata pick align len st0 base dirpt u
-                 answer i lay n-doc stop sd prev ed c texts)
-  (vl-load-com)
+(defun TNMB:run (/ *error* doc oldvars undo cfg ks mm2cad m2cad ss data raw texts groups
+                   cands prev secs sec st mss sds comps item c cp frame mode pdata pick
+                   align len st0 base dirpt u i n-doc stop sd ed use layers lay ok p
+                   m1 m2 dir ratio sdf sdl chord chmap)
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object))
         oldvars (mapcar '(lambda (x) (cons x (getvar x)))
                         '("OSMODE" "CMDECHO" "CLAYER" "ORTHOMODE" "DIMZIN"))
@@ -1231,75 +1574,74 @@
       (princ (strcat "\nTNMB loi: " msg)))
     (princ))
   (cond
-    ((not (TNMB:dialog)))
     ((null (setq mm2cad (TNMB:mm->cad)))
      (alert "INSUNITS cua ban ve khong phai mm/cm/m. Kiem tra don vi truoc khi trien khai."))
     (T
-      (setq cfg *TNMB:CFG* mode (nth 1 cfg) m2cad (* 1000.0 mm2cad))
+      (setq cfg *TNMB:CFG* mode (nth 1 cfg) m2cad (* 1000.0 mm2cad) ks (= (nth 0 cfg) "KS"))
       (vla-StartUndoMark doc) (setq undo T)
       (setvar "CMDECHO" 0) (setvar "DIMZIN" 0)
-      ;; 1. Chon trac ngang
-      (princ (strcat "\nQuet chon cac trac ngang "
-                     (if (= (nth 0 cfg) "TK") "THIET KE" "KHAO SAT")
-                     " (toi da 50), Enter de trien khai:"))
+      ;; 1. Chon trac ngang (khong gioi han so luong)
+      (princ (strcat "\nQuet chon cac trac ngang " (if ks "KHAO SAT" "THIET KE")
+                     ", Enter de trien khai:"))
       (setq ss (ssget '((0 . "LINE,LWPOLYLINE,TEXT,MTEXT"))))
       (if (null ss) (setq stop "Khong chon doi tuong nao."))
       ;; 2. Nhan dien tung mat cat
       (if (null stop)
         (progn
+          (princ "\nDang nhan dien trac ngang...")
           (setq data (TNMB:collect ss cfg)
-                raw (TNMB:raw-sections (car data) (cadr data))
-                texts (append (caddr data) (TNMB:all-texts cfg)))
+                raw (TNMB:raw-sections (car data) (cadr data)))
           (if (null raw)
             (setq stop (strcat "Khong thay duong tim trac ngang tren lop " (nth 2 cfg)
                                ". Kiem tra o 'Bang trac ngang' hoac chon ca bang ghi chu.")))))
       (if (null stop)
         (progn
-          (foreach item raw
-            (setq st (TNMB:find-station texts item))
-            (cond
-              ((null st)
-               (princ (strcat "\nBo qua 1 mat cat (tim X = " (rtos (car item) 2 3)
-                              ", Y = " (rtos (caddr item) 2 3)
-                              "): khong thay chu 'Km a + b' phia tren duong tim.")))
-              ((assoc st secs)
-               (princ (strcat "\nBo 1 mat cat trung ly trinh " (TNMB:km-str st) " (coc trung ten).")))
-              (T
-                (setq mss (TNMB:find-mss texts item))
+          (setq texts (append (caddr data) (TNMB:all-texts cfg))
+                groups (TNMB:group (TNMB:text-pairs texts raw) (length raw))
+                cands nil)
+          (foreach item (mapcar 'list raw groups)
+            (if (setq st (TNMB:find-station (cadr item) (car item)))
+              (setq cands (cons (list st (car item) (cadr item)) cands))
+              (princ (strcat "\nBo qua 1 mat cat (tim X = " (rtos (car (car item)) 2 3)
+                             ", Y = " (rtos (caddr (car item)) 2 3)
+                             "): khong thay chu 'Km a + b' phia tren duong tim."))))
+          ; Sap theo ly trinh; mat cat trung ly trinh (coc trung ten) chi lay 1.
+          (setq cands (mapcar 'cddr (TNMB:ysort (TNMB:tag (mapcar '(lambda (x) (cons (car x) x))
+                                                                 cands))))
+                prev nil secs nil)
+          (foreach c cands
+            (if (and prev (equal (car c) prev 1e-6))
+              (princ (strcat "\nBo 1 mat cat trung ly trinh " (TNMB:km-str (car c))
+                             " (coc trung ten)."))
+              (progn
+                (setq item (cadr c) mss (TNMB:find-mss (caddr c) item))
                 (if (null mss)
-                  (setq mss (getreal (strcat "\nKhong thay MSS coc " (TNMB:km-str st)
+                  (setq mss (getreal (strcat "\nKhong thay MSS coc " (TNMB:km-str (car c))
                                              ", nhap MSS (Enter = bo coc): "))))
                 (if mss
-                  (setq secs (cons (list st (nth 0 item) (nth 1 item) (nth 2 item)
+                  (setq secs (cons (list (car c) (nth 0 item) (nth 1 item) (nth 2 item)
                                          (nth 3 item) (nth 4 item) mss)
-                                   secs))))))
-          (setq secs (vl-sort secs '(lambda (a b) (< (car a) (car b)))))
-          (cond
-            ((null secs) (setq stop "Khong co mat cat hop le."))
-            ((> (length secs) 50)
-             (princ (strcat "\nDa chon " (itoa (length secs)) " trac ngang, vuot gioi han 50."))
-             (initget "Yes No")
-             (setq answer (getkword "\nChi trien khai 50 coc dau (theo ly trinh)? [Yes/No] <No>: "))
-             (if (= answer "Yes")
-               (setq secs (reverse (member (nth 49 secs) (reverse secs))))
-               (setq stop "Da huy: hay chon toi da 50 trac ngang."))))))
+                                   secs)))))
+            (setq prev (car c)))
+          (setq secs (reverse secs))
+          (if (null secs) (setq stop "Khong co mat cat hop le."))))
       ;; 3. Thanh phan tung mat cat
       (if (null stop)
         (progn
-          (setq buckets (TNMB:assign (cadddr data) secs) i 0)
-          (foreach sec secs
-            (setq comps nil)
-            (foreach item buckets
-              (if (and (= (car item) i)
-                       (setq c (TNMB:component (cadr item) (caddr item) sec (= (nth 0 cfg) "KS"))))
-                (setq comps (cons c comps))))
+          (setq groups (TNMB:group (TNMB:assign (cadddr data) secs) (length secs)) sds nil)
+          (foreach item (mapcar 'list secs groups)
+            (setq sec (car item) comps nil)
+            (foreach c (cadr item)
+              (if (setq cp (TNMB:component (car c) (cadr c) sec ks))
+                (setq comps (cons cp comps))))
             (if comps
               (setq sds (cons (list sec (reverse comps)) sds))
               (princ (strcat "\nCoc " (TNMB:km-str (car sec)) ": khong co duong tren lop "
-                             (if (= (nth 0 cfg) "TK") (nth 4 cfg) (nth 5 cfg)) ".")))
-            (setq i (1+ i)))
+                             (if ks (nth 5 cfg) (nth 4 cfg)) "."))))
           (setq sds (reverse sds))
-          (if (null sds) (setq stop "Khong co thanh phan nao de trien khai."))))
+          (if (null sds)
+            (setq stop "Khong co thanh phan nao de trien khai.")
+            (princ (strcat "\nNhan dien " (itoa (length sds)) " trac ngang.")))))
       ;; 4. Dinh vi mat bang
       (if (null stop)
         (if (= mode "THAT")
@@ -1313,20 +1655,48 @@
             (if (null align)
               (setq stop "Chua chon tim tuyen.")
               (progn
-                (setq ed (entget align))
-                (if (and (= (cdr (assoc 0 ed)) "POLYLINE") (= 8 (logand 8 (cdr (assoc 70 ed)))))
-                  (princ "\n(!) Tim tuyen la 3D polyline: chieu dai tinh theo 3D, nen dung polyline 2D."))
+                ; Polyline khong co cung (vd 3D polyline tim cua ADS qua tam cac coc):
+                ; tinh 2D, khop coc vao dinh. Co cung (tim tuyen that): dung truc tiep.
+                (if (setq chord (TNMB:chord-verts align))
+                  (progn
+                    (setq chord (list chord (TNMB:cum chord)) len (last (cadr chord)))
+                    (princ (strcat "\nTim tuyen gay khuc " (itoa (length (car chord)))
+                                   " dinh: tinh 2D, khop tam coc vao dinh, mat cat vuong goc"
+                                   " theo duong cong qua 3 dinh lien ke."))))
                 (setq base (vlax-curve-getStartPoint align))
-                (princ (strcat "\nDiem dau tim tuyen: X = " (rtos (cadr base) 2 3)
-                               "  Y = " (rtos (car base) 2 3)
-                               " (VN-2000: X la Bac, Y la Dong); dai " (rtos len 2 3) "."))
-                (setq st0 (getreal "\nLy trinh tai DIEM DAU tim tuyen, m <0>: "))
-                (if (null st0) (setq st0 0.0))
-                (setq pdata (list align st0 len)))))
+                (princ (strcat "\nTim tuyen dai " (rtos len 2 3) " m; diem dau polyline: X = "
+                               (rtos (cadr base) 2 3) "  Y = " (rtos (car base) 2 3)
+                               " (VN-2000: X la Bac, Y la Dong)."))
+                ; Moc 1: diem da biet ly trinh tren tim tuyen (tam coc Km0+00, coc H...).
+                ; Khong mac dinh diem dau polyline = Km0+00 (polyline co the dai hon tuyen).
+                (setq m1 (TNMB:ask-mark align chord (strcat "\nPick DIEM MOC tren tim tuyen da biet ly trinh"
+                                                      " (vd tam coc Km0+00), Enter = diem dau polyline: ")
+                                        T)
+                      dir 1.0)
+                ; Moc 2 (tuy chon): phat hien polyline ve nguoc chieu / chieu dai khong khop.
+                (setq m2 (TNMB:ask-mark align chord (strcat "\nPick DIEM MOC THU 2 de kiem tra (nen la coc cuoi tuyen),"
+                                                      " Enter = bo qua: ")
+                                        nil))
+                (if (and m2 (> (abs (- (car m2) (car m1))) 1e-6))
+                  (progn
+                    (setq ratio (/ (- (cadr m2) (cadr m1)) (- (car m2) (car m1))))
+                    (if (< ratio 0.0)
+                      (progn
+                        (setq dir -1.0)
+                        (princ "\n(!) Polyline tim tuyen ve NGUOC chieu ly trinh: da tu dao chieu.")))
+                    (if (> (abs (- (abs ratio) 1.0)) 0.002)
+                      (princ (strcat "\n(!) Giua 2 moc: dai tren tim tuyen "
+                                     (rtos (abs (- (car m2) (car m1))) 2 3) " m, chenh ly trinh "
+                                     (rtos (abs (- (cadr m2) (cadr m1))) 2 3)
+                                     " m -> KHONG KHOP. Kiem tra polyline tim tuyen va ly trinh moc."))
+                      (princ "\nHai moc khop chieu dai tim tuyen."))))
+                (setq pdata (list align (car m1) (cadr m1) dir len))
+                (princ (strcat "\nTim tuyen phu ly trinh "
+                               (TNMB:km-str (- (cadr m1) (* dir (car m1)))) " -> "
+                               (TNMB:km-str (+ (cadr m1) (* dir (- len (car m1))))) ".")))))
           (progn
             (setvar "OSMODE" (cdr (assoc "OSMODE" oldvars)))
-            (setq base (getpoint (strcat "\nPick diem dat mat bang (tim coc "
-                                         (TNMB:km-str (car (car (car sds)))) "): ")))
+            (setq base (getpoint "\nPick diem dat mat bang (diem tim tuyen): "))
             (if (null base)
               (setq stop "Chua pick diem dat.")
               (progn
@@ -1334,15 +1704,23 @@
                       u (if dirpt
                           (VTL:unit (VTL:sub (trans dirpt 1 0) (trans base 1 0)))))
                 (if (null u) (setq u '(1.0 0.0)))
+                ; Ly trinh cua diem pick (mac dinh = coc dau tien duoc chon).
                 (setq base (trans base 1 0)
-                      pdata (list (list (car base) (cadr base)) u (car (car (car sds))))))))))
+                      pdata (list (list (car base) (cadr base)) u
+                                  (TNMB:ask-st "\nLy trinh tai diem pick" (car (car (car sds)))))))))))
       ;; 5. Toa do mat bang
       (if (null stop)
         (progn
           (setvar "OSMODE" 0)
           (setq data nil)
+          (if chord
+            (setq chmap (TNMB:ch-map (mapcar '(lambda (x) (car (car x))) sds)
+                                     (cadr chord) (car m1) (cadr m1) dir)))
           (foreach sd sds
-            (setq sec (car sd) frame (TNMB:frame (car sec) mode pdata))
+            (setq sec (car sd)
+                  frame (if chord
+                          (TNMB:ch-frame (cdr (assoc (car sec) chmap)) (car chord) (cadr chord) dir len)
+                          (TNMB:frame (car sec) mode pdata)))
             (if frame
               (progn
                 (setq comps
@@ -1357,44 +1735,75 @@
                              ": nam ngoai chieu dai tim tuyen."))))
           (setq sds (reverse data))
           (if (null sds) (setq stop "Khong coc nao nam tren tim tuyen: kiem tra ly trinh diem dau."))))
-      ;; 6. Ve
+      ;; 6. Layer rieng tung phan (chi tao phan duoc dung)
       (if (null stop)
         (progn
-          (setq lay (TNMB:prepare-layer (nth 7 cfg) (if (= (nth 0 cfg) "TK") 1 3)))
-          (if (null lay)
-            (setq stop "Layer ket qua chua san sang.")
+          ; Thu tu nhu *TNMB:PARTS*: ngang, doc, cao do, do doc, vach taluy, ten coc.
+          (setq use (list T (= (nth 13 cfg) "1") (= (nth 24 cfg) "1")
+                          (= (nth 14 cfg) "1")
+                          (and (not ks) (= (nth 15 cfg) "1"))
+                          (= (nth 25 cfg) "1"))
+                layers nil ok T i 0)
+          (foreach p *TNMB:PARTS*
+            (if (and ok (nth i use))
+              (if (setq lay (TNMB:prepare-layer (strcat (nth 7 cfg) (cadr p))
+                                                (atoi (nth (caddr p) cfg))))
+                (setq layers (cons (cons (cadddr p) lay) layers))
+                (setq ok nil)))
+            (setq i (1+ i)))
+          (if (not ok) (setq stop "Layer ket qua chua san sang (xem thong bao o tren)."))))
+      ;; 7. Ve
+      (if (null stop)
+        (progn
+          (setq *TNMB:CTX*
+            (append layers
+              (list (cons '3d (= (nth 12 cfg) "3D"))
+                    (cons 'h (* (atof (nth 9 cfg)) (atof (nth 11 cfg)) mm2cad))
+                    (cons 'w (* (atof (nth 10 cfg)) (atof (nth 11 cfg)) mm2cad))
+                    (cons 'style (TNMB:style (nth 8 cfg)))
+                    (cons 'm2cad m2cad)
+                    (cons 'slope (= (nth 14 cfg) "1"))
+                    (cons 'caodo (= (nth 24 cfg) "1"))
+                    (cons 'tencoc (= (nth 25 cfg) "1"))
+                    (cons 'maugoc (= (nth 23 cfg) "1"))
+                    (cons 'ltaluy (nth 6 cfg))
+                    (cons 'step (* (atof (nth 16 cfg)) m2cad))))
+                *TNMB:N-NGANG* 0 *TNMB:N-CHU* 0 *TNMB:N-DOC* 0 *TNMB:N-VACH* 0 n-doc 0)
+          (princ (strcat "\nDang ve " (itoa (length sds)) " trac ngang..."))
+          (foreach sd sds (TNMB:draw-section sd))
+          (if (= (nth 13 cfg) "1") (setq n-doc (TNMB:longitudinal sds)))
+          (if (and (not ks) (= (nth 15 cfg) "1"))
             (progn
-              (setq *TNMB:CTX*
-                (list (cons 'layer lay)
-                      (cons '3d (= (nth 12 cfg) "3D"))
-                      (cons 'h (* (atof (nth 9 cfg)) (atof (nth 11 cfg)) mm2cad))
-                      (cons 'w (* (atof (nth 10 cfg)) (atof (nth 11 cfg)) mm2cad))
-                      (cons 'style (TNMB:style (nth 8 cfg)))
-                      (cons 'm2cad m2cad)
-                      (cons 'slope (and (= (nth 0 cfg) "TK") (= (nth 14 cfg) "1")))
-                      (cons 'ltaluy (nth 6 cfg))
-                      (cons 'step (* (atof (nth 16 cfg)) m2cad)))
-                    *TNMB:N-NGANG* 0 *TNMB:N-CHU* 0 *TNMB:N-DOC* 0 *TNMB:N-VACH* 0 n-doc 0)
-              (foreach sd sds (TNMB:draw-section sd))
-              (if (= (nth 13 cfg) "1") (setq n-doc (TNMB:longitudinal sds)))
-              (if (and (= (nth 0 cfg) "TK") (= (nth 15 cfg) "1"))
-                (progn
-                  (setq prev nil)
-                  (foreach sd sds
-                    (if prev (TNMB:ticks prev sd))
-                    (setq prev sd))))
-              (princ (strcat "\nTNMB xong: " (itoa (length sds)) " coc, "
-                             (itoa *TNMB:N-NGANG*) " polyline ngang, "
-                             (itoa n-doc) " polyline doc, "
-                             (itoa *TNMB:N-CHU*) " cao do, "
-                             (itoa *TNMB:N-DOC*) " do doc, "
-                             (itoa *TNMB:N-VACH*) " vach taluy. Layer: " lay "."))
-              (if (>= *TNMB:N-VACH* 200000)
-                (princ "\n(!) Dat gioi han 200000 vach taluy: tang buoc vach."))
-              (setq *TNMB:CTX* nil)))))
+              (setq prev nil)
+              (foreach sd sds
+                (if prev (TNMB:ticks prev sd))
+                (setq prev sd))))
+          (princ (strcat "\nTNMB xong: " (itoa (length sds)) " coc, "
+                         (itoa *TNMB:N-NGANG*) " polyline ngang, "
+                         (itoa n-doc) " polyline doc, "
+                         (itoa *TNMB:N-CHU*) " cao do, "
+                         (itoa *TNMB:N-DOC*) " do doc, "
+                         (itoa *TNMB:N-VACH*) " vach taluy."))
+          (princ "\nLayer: ")
+          (foreach p (reverse layers) (princ (strcat (cdr p) "  ")))
+          ; Kiem tra ly trinh: vi tri tim coc dau / cuoi va khoang cach doc tuyen.
+          (setq sdf (car sds) sdl (last sds))
+          (princ (strcat "\nKiem tra: tim " (TNMB:km-str (car (car sdf))) " tai X = "
+                         (rtos (cadr (car (cadr sdf))) 2 3) " Y = " (rtos (car (car (cadr sdf))) 2 3)
+                         "; tim " (TNMB:km-str (car (car sdl))) " tai X = "
+                         (rtos (cadr (car (cadr sdl))) 2 3) " Y = " (rtos (car (car (cadr sdl))) 2 3)
+                         "; cach nhau theo tuyen " (rtos (- (car (car sdl)) (car (car sdf))) 2 2) " m."))
+          (if (>= *TNMB:N-VACH* 1000000)
+            (princ "\n(!) Dat gioi han 1000000 vach taluy: tang buoc vach."))
+          (setq *TNMB:CTX* nil)))
       (if stop (princ (strcat "\nTNMB dung: " stop)))))
   (*error* nil))
 
-(princ (strcat "\nDa nap VTL.lsp [" *VTL:BUILD* "]. Go VTL de ve taluy tren binh do;"
-               " TNMB de trien khai trac ngang thanh mat bang."))
+; Go TNMB: mo hop thoai VTL voi chuc nang trien khai trac ngang chon san.
+(defun C:TNMB ()
+  (setq *VTL:FN* "TNMB")
+  (C:VTL))
+
+(princ (strcat "\nDa nap VTL.lsp [" *VTL:BUILD* "]. Go VTL: ve taluy binh do"
+               " / trien khai trac ngang thanh mat bang (chung 1 hop thoai)."))
 (princ)
