@@ -10,7 +10,7 @@
 ;   do doc, ky hieu taluy/giat co. Xem phan TNMB o cuoi file.
 
 (vl-load-com)
-(setq *VTL:BUILD* "2026-10-15-r7")
+(setq *VTL:BUILD* "2026-10-15-r7b")
 
 ; Doi cau hinh cu: ty le vach ngan -> chieu dai vach ngan cung don vi nhap.
 (if (not (equal *VTL:CFG-SCHEMA* 2))
@@ -752,17 +752,24 @@
     (setq s (strcat (substr s 1 p) (substr s (+ p 2)))))
   s)
 
+; Ky tu thuoc mot so: chu so, dau tru, dau cham, dau phay.
+(defun TNMB:num-char-p (c)
+  (member c '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "-" "." ",")))
+
+; So dau tien trong chuoi: bo ky tu dung truoc (": = "), doc lien day so.
+; Khong dung wcmatch / vl-string-search chuoi rong (khac nhau giua cac ban AutoCAD).
+(defun TNMB:read-num (s / i n out)
+  (setq i 1 n (strlen s) out "")
+  (while (and (<= i n) (not (TNMB:num-char-p (substr s i 1))))
+    (setq i (1+ i)))
+  (while (and (<= i n) (TNMB:num-char-p (substr s i 1)))
+    (setq out (strcat out (substr s i 1)) i (1+ i)))
+  (if (/= out "") (VTL:to-number out)))
+
 ; So dung sau tu khoa: "MSS: 3" -> 3. Nhan dau phay thap phan.
-(defun TNMB:num-after (s key / p i n out)
+(defun TNMB:num-after (s key / p)
   (setq s (strcase s) p (vl-string-search key s))
-  (if p
-    (progn
-      (setq i (+ p (strlen key) 1) n (strlen s) out "")
-      (while (and (<= i n) (not (wcmatch (substr s i 1) "#,-,`.")))
-        (setq i (1+ i)))
-      (while (and (<= i n) (wcmatch (substr s i 1) "#,-,`.,`,"))
-        (setq out (strcat out (substr s i 1)) i (1+ i)))
-      (VTL:to-number out))))
+  (if p (TNMB:read-num (substr s (+ p (strlen key) 1)))))
 
 ; "Km 1 + 21.97" -> 1021.97 (m). Khong dung mau -> nil.
 (defun TNMB:station (s / p q km m)
@@ -772,8 +779,8 @@
       (setq s (substr s (+ p 3)) q (vl-string-search "+" s))
       (if (and q (> q 0))
         (progn
-          (setq km (VTL:to-number (substr s 1 q))
-                m (TNMB:num-after (substr s (+ q 2)) ""))
+          (setq km (TNMB:read-num (substr s 1 q))
+                m (TNMB:read-num (substr s (+ q 2))))
           (if (and km m) (+ (* 1000.0 km) m)))))))
 
 ; So -> chuoi 2 so le, bo so 0 thua (1.50 -> 1.5, 2.00 -> 2).
@@ -822,6 +829,21 @@
         (setq pts (TNMB:ent-points ed))
         (if (cdr pts) (setq polys (cons (list lay pts) polys))))))
   (list hor ver texts polys))
+
+; Chu ly trinh / MSS cua CA ban ve (khong gian hien hanh), phong khi quet chon
+; khong trum dong chu ly trinh phia tren khung hoac chu MSS. Gan theo vi tri mat cat.
+(defun TNMB:all-texts (cfg / ss i ed res)
+  (if (setq ss (ssget "_X" (list '(0 . "TEXT,MTEXT")
+                                 '(1 . "*[Kk][Mm]*,*[Mm][Ss][Ss]*")
+                                 (cons 410 (getvar "CTAB")))))
+    (progn
+      (setq i 0)
+      (repeat (sslength ss)
+        (setq ed (entget (ssname ss i)) i (1+ i))
+        (setq res (cons (list (TNMB:match (cdr (assoc 8 ed)) (nth 3 cfg))
+                              (TNMB:text-string ed) (cdr (assoc 10 ed)))
+                        res)))))
+  res)
 
 ; Duong tim = LINE dung co chan nam TRONG doan ngang mep tren bang.
 ; Ket qua: (x-tim y-chan y-dinh x-trai-bang x-phai-bang).
@@ -1195,7 +1217,7 @@
 
 (defun C:TNMB (/ *error* doc oldvars undo cfg mm2cad m2cad ss data raw secs sec st mss
                  buckets sds comps item frame mode pdata pick align len st0 base dirpt u
-                 answer i lay n-doc stop sd prev ed c)
+                 answer i lay n-doc stop sd prev ed c texts)
   (vl-load-com)
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object))
         oldvars (mapcar '(lambda (x) (cons x (getvar x)))
@@ -1226,22 +1248,24 @@
       (if (null stop)
         (progn
           (setq data (TNMB:collect ss cfg)
-                raw (TNMB:raw-sections (car data) (cadr data)))
+                raw (TNMB:raw-sections (car data) (cadr data))
+                texts (append (caddr data) (TNMB:all-texts cfg)))
           (if (null raw)
             (setq stop (strcat "Khong thay duong tim trac ngang tren lop " (nth 2 cfg)
                                ". Kiem tra o 'Bang trac ngang' hoac chon ca bang ghi chu.")))))
       (if (null stop)
         (progn
           (foreach item raw
-            (setq st (TNMB:find-station (caddr data) item))
+            (setq st (TNMB:find-station texts item))
             (cond
               ((null st)
-               (princ (strcat "\nBo qua 1 mat cat (x tim = " (rtos (car item) 2 3)
-                              "): khong doc duoc ly trinh 'Km a + b'.")))
+               (princ (strcat "\nBo qua 1 mat cat (tim X = " (rtos (car item) 2 3)
+                              ", Y = " (rtos (caddr item) 2 3)
+                              "): khong thay chu 'Km a + b' phia tren duong tim.")))
               ((assoc st secs)
                (princ (strcat "\nBo 1 mat cat trung ly trinh " (TNMB:km-str st) " (coc trung ten).")))
               (T
-                (setq mss (TNMB:find-mss (caddr data) item))
+                (setq mss (TNMB:find-mss texts item))
                 (if (null mss)
                   (setq mss (getreal (strcat "\nKhong thay MSS coc " (TNMB:km-str st)
                                              ", nhap MSS (Enter = bo coc): "))))
